@@ -47,7 +47,7 @@ func randomToken(n int) string {
 	return hex.EncodeToString(b)
 }
 
-// runCmd 执行命令并返回合并输出;timeout<=0 用默认 30s
+// runCmd runs a command and returns its combined output; timeout<=0 uses the default 30s
 func runCmd(timeout time.Duration, name string, args ...string) (string, int) {
 	if timeout <= 0 {
 		timeout = 30 * time.Second
@@ -85,7 +85,7 @@ func homeDir() string {
 	return h
 }
 
-// clientIP 提取客户端 IP(不含端口)
+// clientIP extracts the client IP (without the port)
 func clientIP(r *http.Request) string {
 	host := r.RemoteAddr
 	if i := strings.LastIndex(host, ":"); i > 0 {
@@ -95,7 +95,7 @@ func clientIP(r *http.Request) string {
 	return host
 }
 
-// ---------- AI 快照用的轻量封装 ----------
+// ---------- Lightweight wrappers for the AI snapshot ----------
 
 func cpuPercentQuick() (float64, error) {
 	v, err := cpu.Percent(0, false)

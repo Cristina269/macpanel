@@ -10,13 +10,13 @@ import (
 	"time"
 )
 
-// Job 后台任务(brew install、容器创建、证书签发等)
+// Job is a background task (brew install, container creation, certificate issuance, etc.)
 type Job struct {
-	ID      string   `json:"id"`
-	Name    string   `json:"name"`
-	Status  string   `json:"status"` // running | done | failed
-	Cmdline string   `json:"cmdline"`
-	Exit    int      `json:"exit"`
+	ID      string    `json:"id"`
+	Name    string    `json:"name"`
+	Status  string    `json:"status"` // running | done | failed
+	Cmdline string    `json:"cmdline"`
+	Exit    int       `json:"exit"`
 	Started time.Time `json:"started"`
 	Ended   time.Time `json:"ended"`
 
@@ -53,7 +53,7 @@ type JobManager struct {
 
 func NewJobs() *JobManager { return &JobManager{jobs: map[string]*Job{}} }
 
-// Start 启动后台命令,返回 job
+// Start launches a background command and returns the job
 func (jm *JobManager) Start(name string, argv ...string) *Job {
 	j := &Job{
 		ID: randomToken(8), Name: name,
@@ -100,7 +100,7 @@ func (jm *JobManager) Start(name string, argv ...string) *Job {
 	return j
 }
 
-// GET /api/jobs — 列表(简要)
+// GET /api/jobs — brief listing
 func (app *App) handleJobList(w http.ResponseWriter, r *http.Request, s *Session) {
 	type jobBrief struct {
 		ID      string    `json:"id"`
@@ -119,7 +119,7 @@ func (app *App) handleJobList(w http.ResponseWriter, r *http.Request, s *Session
 	apiOK(w, map[string]any{"jobs": out})
 }
 
-// GET /api/jobs/{id} — 详情含日志
+// GET /api/jobs/{id} — details including logs
 func (app *App) handleJobGet(w http.ResponseWriter, r *http.Request, s *Session) {
 	id := strings.TrimPrefix(r.URL.Path, "/api/jobs/")
 	app.jobs.mu.Lock()

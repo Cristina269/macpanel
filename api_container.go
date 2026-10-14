@@ -19,7 +19,7 @@ func containerBinPath() string {
 	return "container"
 }
 
-// container ls --format json 的字段(只取需要的)
+// fields of `container ls --format json` (only what we need)
 type ContainerRow struct {
 	ID     string `json:"id"`
 	Status struct {
@@ -61,7 +61,7 @@ type ContainerInfo struct {
 func (app *App) handleContainerList(w http.ResponseWriter, r *http.Request, s *Session) {
 	out, code := runCmd(30*time.Second, containerBinPath(), "ls", "--all", "--format", "json")
 	if code != 0 {
-		// 旧版本可能没有 --all
+		// older versions may not support --all
 		out, code = runCmd(30*time.Second, containerBinPath(), "ls", "--format", "json")
 		if code != 0 {
 			apiErr(w, 500, "container ls 失败: "+strings.TrimSpace(out))

@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// GET /api/ai/settings — key 打码
+// GET /api/ai/settings — key masked
 func (app *App) handleAIGet(w http.ResponseWriter, r *http.Request, s *Session) {
 	var ai AISettings
 	app.store.Read(func(c *Config) { ai = c.AI })
@@ -22,7 +22,7 @@ func (app *App) handleAIGet(w http.ResponseWriter, r *http.Request, s *Session) 
 	})
 }
 
-// POST /api/ai/settings {base_url, model, key(空=不改)}
+// POST /api/ai/settings {base_url, model, key (empty = keep unchanged)}
 func (app *App) handleAISet(w http.ResponseWriter, r *http.Request, s *Session) {
 	var req struct {
 		BaseURL string `json:"base_url"`
@@ -52,7 +52,7 @@ func (app *App) handleAISet(w http.ResponseWriter, r *http.Request, s *Session) 
 	apiOK(w, nil)
 }
 
-// POST /api/ai/chat {messages:[{role, content}], diagnose:bool} — SSE 流式返回
+// POST /api/ai/chat {messages:[{role, content}], diagnose:bool} — SSE streaming response
 func (app *App) handleAIChat(w http.ResponseWriter, r *http.Request, s *Session) {
 	var ai AISettings
 	app.store.Read(func(c *Config) { ai = c.AI })
@@ -72,7 +72,7 @@ func (app *App) handleAIChat(w http.ResponseWriter, r *http.Request, s *Session)
 	if req.Diagnose {
 		snapshot := app.aiSystemSnapshot()
 		sys := map[string]string{
-			"role": "system",
+			"role":    "system",
 			"content": "你是 MacPanel 内置的系统运维助手。以下是这台 macOS 服务器的实时状态快照(JSON),请据此回答用户的运维问题,用中文:\n" + snapshot,
 		}
 		msgs = append([]map[string]string{sys}, msgs...)
@@ -130,7 +130,7 @@ func (app *App) handleAIChat(w http.ResponseWriter, r *http.Request, s *Session)
 	}
 }
 
-// aiSystemSnapshot 生成给 AI 的系统状态摘要
+// aiSystemSnapshot builds a system status summary for the AI
 func (app *App) aiSystemSnapshot() string {
 	var b strings.Builder
 	b.WriteString("{")

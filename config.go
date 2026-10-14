@@ -8,11 +8,11 @@ import (
 	"time"
 )
 
-// Monitor 自定义监控项
+// Monitor is a custom monitoring item
 type Monitor struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
-	Type      string    `json:"type"` // launchd | port | http | process
+	Type      string    `json:"type"`   // launchd | port | http | process
 	Target    string    `json:"target"` // launchd label / host:port / url / process name
 	Enabled   bool      `json:"enabled"`
 	LastOK    bool      `json:"last_ok"`
@@ -21,20 +21,20 @@ type Monitor struct {
 	LastError string    `json:"last_error"`
 }
 
-// Site Caddy 反代/静态站点
+// Site is a Caddy reverse-proxy/static site
 type Site struct {
-	Domain string `json:"domain"` // 可含端口,如 example.com:8443
-	Type   string `json:"type"`   // proxy | static
-	Target string `json:"target"` // proxy: 127.0.0.1:8083 ; static: 目录绝对路径
-	TLS    string `json:"tls"`    // none | internal | files
-	Cert   string `json:"cert"`   // tls=files 时的证书路径
-	Key    string `json:"key"`
-	Enabled bool  `json:"enabled"`
+	Domain  string `json:"domain"` // may include a port, e.g. example.com:8443
+	Type    string `json:"type"`   // proxy | static
+	Target  string `json:"target"` // proxy: 127.0.0.1:8083 ; static: absolute directory path
+	TLS     string `json:"tls"`    // none | internal | files
+	Cert    string `json:"cert"`   // certificate path when tls=files
+	Key     string `json:"key"`
+	Enabled bool   `json:"enabled"`
 }
 
 type User struct {
 	Name string `json:"name"`
-	Hash string `json:"hash"` // argon2id 编码串
+	Hash string `json:"hash"` // argon2id encoded string
 }
 
 type KnownService struct {
@@ -51,7 +51,7 @@ type AISettings struct {
 
 type Config struct {
 	Listen        string         `json:"listen"`
-	HTTPPort      string         `json:"http_port"` // TLS 启用时的 HTTP 跳转端口,空则不监听
+	HTTPPort      string         `json:"http_port"` // HTTP redirect port when TLS is enabled; empty disables it
 	Entrance      string         `json:"entrance"`
 	TLSCert       string         `json:"tls_cert"`
 	TLSKey        string         `json:"tls_key"`
@@ -123,7 +123,7 @@ func (s *Store) Update(fn func(c *Config)) error {
 	return s.saveLocked()
 }
 
-// Read 在锁内读配置(拷贝需要的字段出来)
+// Read reads the config under the lock (copy out the fields you need)
 func (s *Store) Read(fn func(c *Config)) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

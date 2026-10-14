@@ -15,7 +15,7 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
-// ---------- argon2id 密码哈希 ----------
+// ---------- argon2id password hashing ----------
 
 const (
 	argonTime    = 1
@@ -46,7 +46,7 @@ func verifyPassword(pw, encoded string) bool {
 	return subtle.ConstantTimeCompare(key, keyBytes) == 1
 }
 
-// ---------- 会话 ----------
+// ---------- Sessions ----------
 
 type Session struct {
 	Token    string
@@ -59,7 +59,7 @@ type Session struct {
 type SessionManager struct {
 	mu       sync.Mutex
 	sessions map[string]*Session
-	path     string // 持久化文件(重启不丢会话),空则不持久化
+	path     string // persistence file (sessions survive restarts); empty disables persistence
 }
 
 func NewSessions(persistPath string) *SessionManager {
@@ -70,7 +70,7 @@ const sessionCookie = "macpanel_session"
 
 func (sm *SessionManager) create(user string, hours int) *Session {
 	if hours < 1 {
-		hours = 24 // 防 config 里 session_hours 缺失/为 0 导致会话秒过期
+		hours = 24 // guard against a missing/zero session_hours in config expiring sessions instantly
 	}
 	s := &Session{
 		Token:    randomToken(32),
@@ -80,7 +80,7 @@ func (sm *SessionManager) create(user string, hours int) *Session {
 		LastSeen: time.Now(),
 	}
 	sm.mu.Lock()
-	// 顺带清理过期会话
+	// Prune expired sessions while we're here
 	now := time.Now()
 	for k, v := range sm.sessions {
 		if now.After(v.Expires) {
@@ -93,7 +93,7 @@ func (sm *SessionManager) create(user string, hours int) *Session {
 	return s
 }
 
-// persistLocked 落盘会话(0600,文件里是有效凭证,权限必须收紧)
+// persistLocked writes sessions to disk (0600; the file holds valid credentials, so permissions must stay tight)
 func (sm *SessionManager) persistLocked() {
 	if sm.path == "" {
 		return
@@ -116,7 +116,7 @@ func (sm *SessionManager) persistLocked() {
 	}
 }
 
-// Load 启动时恢复会话(丢弃已过期)
+// Load restores sessions at startup (expired ones are dropped)
 func (sm *SessionManager) Load() {
 	if sm.path == "" {
 		return
@@ -144,7 +144,7 @@ func (sm *SessionManager) Load() {
 	}
 	sm.mu.Unlock()
 	if restored > 0 {
-		log.Printf("已恢复 %d 个会话", restored)
+		log.Printf("restored %d sessions", restored)
 	}
 }
 
@@ -155,7 +155,7 @@ func (sm *SessionManager) get(token string) *Session {
 	if !ok || time.Now().After(s.Expires) {
 		return nil
 	}
-	// 滑动续期:每分钟最多刷一次
+	// Sliding renewal: refresh at most once per minute
 	if time.Since(s.LastSeen) > time.Minute {
 		s.Expires = time.Now().Add(time.Until(s.Expires) + time.Minute)
 		s.LastSeen = time.Now()
@@ -178,7 +178,7 @@ func (sm *SessionManager) sessionFromRequest(r *http.Request) *Session {
 	return sm.get(c.Value)
 }
 
-// ---------- 登录限速 ----------
+// ---------- Login rate limiting ----------
 
 type attempt struct {
 	fails int
@@ -186,17 +186,17 @@ type attempt struct {
 }
 
 type RateLimiter struct {
-	mu      sync.Mutex
-	byIP    map[string]*attempt
-	global  int
-	window  time.Time
+	mu     sync.Mutex
+	byIP   map[string]*attempt
+	global int
+	window time.Time
 }
 
 func NewRateLimiter() *RateLimiter {
 	return &RateLimiter{byIP: map[string]*attempt{}, window: time.Now()}
 }
 
-// Allow 返回是否允许尝试
+// Allow reports whether an attempt is permitted
 func (rl *RateLimiter) Allow(ip string) bool {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
@@ -218,7 +218,7 @@ func (rl *RateLimiter) Fail(ip string) (lockedFor time.Duration) {
 	}
 	a.fails++
 	if a.fails >= 5 {
-		// 指数退避:15m, 30m, 60m ...
+		// Exponential backoff: 15m, 30m, 60m ...
 		mult := uint(a.fails-5) % 4
 		a.until = now.Add((15 << mult) * time.Minute)
 		a.fails = 5
@@ -233,7 +233,7 @@ func (rl *RateLimiter) Reset(ip string) {
 	rl.mu.Unlock()
 }
 
-// ---------- 认证 handlers ----------
+// ---------- Auth handlers ----------
 
 var usernameRe = regexp.MustCompile(`^[a-zA-Z0-9_.-]{2,32}$`)
 
@@ -302,7 +302,7 @@ func (app *App) handleLogin(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	// 用户不存在也做一次哈希,拉平时间差
+	// Hash even for unknown users to even out the timing difference
 	if !okUser {
 		verifyPassword(req.Password, hashPassword("timing-equalizer"))
 	}
@@ -343,13 +343,13 @@ func (app *App) handleMe(w http.ResponseWriter, r *http.Request, s *Session) {
 	apiOK(w, map[string]any{"user": s.User, "csrf": s.CSRF})
 }
 
-// ---------- 中间件 ----------
+// ---------- Middleware ----------
 
 type AuthedHandler func(w http.ResponseWriter, r *http.Request, s *Session)
 
 func (app *App) authWrap(h AuthedHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// IP 白名单
+		// IP allowlist
 		if len(app.store.Cfg.IPAllowlist) > 0 && !ipAllowed(clientIP(r), app.store.Cfg.IPAllowlist) {
 			apiErr(w, http.StatusForbidden, "IP 不在白名单")
 			return
@@ -379,7 +379,7 @@ func ipAllowed(ip string, allowlist []string) bool {
 		if a == ip || a == ip+"/32" {
 			return true
 		}
-		// 简单前缀匹配,如 "192.168.31." 或 "172.22."
+		// Simple prefix match, e.g. "192.168.31." or "172.22."
 		if strings.HasSuffix(a, ".") && strings.HasPrefix(ip, a) {
 			return true
 		}
@@ -387,7 +387,7 @@ func ipAllowed(ip string, allowlist []string) bool {
 	return false
 }
 
-// securityHeaders 统一安全响应头
+// securityHeaders sets uniform security response headers
 func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()

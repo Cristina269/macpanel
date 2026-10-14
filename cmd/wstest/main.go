@@ -1,4 +1,4 @@
-// wstest — 冒烟测试终端 WS(用后即删或保留作调试工具)
+// wstest — smoke test for the terminal WS (delete after use, or keep as a debug tool)
 package main
 
 import (
@@ -23,9 +23,9 @@ func main() {
 	}
 	defer ws.Close()
 
-	// 先设置终端尺寸
+	// set the terminal size first
 	ws.WriteMessage(websocket.TextMessage, []byte(`{"type":"resize","cols":120,"rows":30}`))
-	// 发命令
+	// send the command
 	ws.WriteMessage(websocket.TextMessage, []byte("echo macpanel-ws-ok-$((40+2))\r"))
 
 	got := ""
@@ -56,7 +56,7 @@ func main() {
 	}
 	fmt.Println("---- got", len(got), "bytes ----")
 	if contains(got, "macpanel-ws-ok-42") {
-		fmt.Println("TERMINAL WS OK: echo 回显正确, resize 消息被接受")
+		fmt.Println("TERMINAL WS OK: echo round-trip correct, resize message accepted")
 	} else {
 		fmt.Println("TERMINAL WS FAIL, tail:", tail(got, 400))
 		os.Exit(1)

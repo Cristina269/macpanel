@@ -27,14 +27,14 @@ type App struct {
 
 func main() {
 	defaultDir := filepath.Join(homeDir(), "macpanel", "data")
-	var cfgDir = flag.String("data", defaultDir, "数据目录")
+	var cfgDir = flag.String("data", defaultDir, "data directory")
 	flag.Parse()
 	dataDir = *cfgDir
 	_ = os.MkdirAll(dataDir, 0o700)
 
 	store, err := LoadStore(dataDir)
 	if err != nil {
-		log.Fatal("加载配置失败: ", err)
+		log.Fatal("failed to load config: ", err)
 	}
 	app := &App{
 		store:    store,
@@ -49,12 +49,12 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	// 公开:初始化状态 + 初始化 + 登录
+	// Public: setup status + setup + login
 	mux.HandleFunc("/api/setup-status", app.handleSetupStatus)
 	mux.HandleFunc("/api/setup", app.handleSetup)
 	mux.HandleFunc("/api/login", app.handleLogin)
 
-	// 需登录
+	// Requires login
 	mux.HandleFunc("/api/me", app.authWrap(app.handleMe))
 	mux.HandleFunc("/api/logout", app.authWrap(app.handleLogout))
 	mux.HandleFunc("/api/system/status", app.authWrap(app.handleStatus))
@@ -103,12 +103,12 @@ func main() {
 	mux.HandleFunc("/api/password", app.authWrap(app.handlePasswordChange))
 	mux.HandleFunc("/api/terminal", app.authWrap(app.handleTerminal))
 
-	// 静态资源(公开,SPA 壳由 entrance 中间件守卫);URL /assets/* ↔ web/assets/*
+	// Static assets (public; the SPA shell is guarded by the entrance middleware); URL /assets/* maps to web/assets/*
 	assets, _ := fs.Sub(webFS, "web/assets")
 	fileServer := http.FileServer(http.FS(assets))
 	mux.Handle("/assets/", http.StripPrefix("/assets/", fileServer))
 
-	// SPA 入口(含 entrance 门卫)
+	// SPA entry point (includes the entrance gate)
 	mux.HandleFunc("/", app.spaHandler(fileServer))
 
 	handler := securityHeaders(cacheControl(mux))
@@ -125,7 +125,7 @@ func main() {
 				target := "https://" + host + r.RequestURI
 				http.Redirect(w, r, target, http.StatusMovedPermanently)
 			})
-			log.Println("HTTP 跳转监听", store.Cfg.HTTPPort)
+			log.Println("HTTP redirect listening on", store.Cfg.HTTPPort)
 			log.Println(http.ListenAndServe(store.Cfg.HTTPPort, securityHeaders(redirect)))
 		}()
 	}
@@ -135,7 +135,7 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}
-	log.Printf("MacPanel 启动于 %s (TLS=%v)", listen, tlsOn)
+	log.Printf("MacPanel started on %s (TLS=%v)", listen, tlsOn)
 	if tlsOn {
 		log.Fatal(srv.ListenAndServeTLS(store.Cfg.TLSCert, store.Cfg.TLSKey))
 	} else {
@@ -143,7 +143,7 @@ func main() {
 	}
 }
 
-// cacheControl 防"升级后浏览器用旧缓存"问题:API 与 SPA 壳禁缓存,静态资源要求回源验证
+// cacheControl guards against browsers reusing stale caches after an upgrade: API and SPA shell are no-store, static assets must revalidate
 func cacheControl(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "/assets/") {
@@ -155,22 +155,22 @@ func cacheControl(next http.Handler) http.Handler {
 	})
 }
 
-// spaHandler:entrance 门卫 + SPA 壳
+// spaHandler: entrance gate + SPA shell
 func (app *App) spaHandler(assets http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		p := r.URL.Path
 		entrance := app.store.Cfg.Entrance
 		if entrance != "" {
-			// API 路径由各自 auth 守卫,不在这里拦
+			// API paths are guarded by their own auth checks, not intercepted here
 			if !strings.HasPrefix(p, "/api/") && !strings.HasPrefix(p, "/assets/") {
 				if p != "/"+entrance && !strings.HasPrefix(p, "/"+entrance+"/") {
-					// 404 而非 302:不向扫描器暴露入口的存在
+					// 404 instead of 302: don't reveal the entrance's existence to scanners
 					http.NotFound(w, r)
 					return
 				}
 			}
 		}
-		// 其余路径一律回 SPA
+		// All other paths fall back to the SPA
 		b, err := webFS.ReadFile("web/index.html")
 		if err != nil {
 			http.Error(w, "panel shell missing", 500)
@@ -181,7 +181,7 @@ func (app *App) spaHandler(assets http.Handler) http.HandlerFunc {
 	}
 }
 
-// handleSettingsGet 读取当前安全设置(不含密码哈希)
+// handleSettingsGet reads the current security settings (excluding password hashes)
 func (app *App) handleSettingsGet(w http.ResponseWriter, r *http.Request, s *Session) {
 	out := map[string]any{}
 	app.store.Read(func(c *Config) {
@@ -197,7 +197,7 @@ func (app *App) handleSettingsGet(w http.ResponseWriter, r *http.Request, s *Ses
 	apiOK(w, out)
 }
 
-// handleSettingsSave 安全设置:入口路径、监听、TLS、IP 白名单、已知服务
+// handleSettingsSave updates security settings: entrance path, listen address, TLS, IP allowlist, known services
 func (app *App) handleSettingsSave(w http.ResponseWriter, r *http.Request, s *Session) {
 	var req struct {
 		Entrance      *string         `json:"entrance"`
@@ -247,7 +247,7 @@ func (app *App) handleSettingsSave(w http.ResponseWriter, r *http.Request, s *Se
 	apiOK(w, map[string]any{"note": "listen/TLS 修改需重启面板生效"})
 }
 
-// handlePasswordChange 修改自己的密码
+// handlePasswordChange changes the caller's own password
 func (app *App) handlePasswordChange(w http.ResponseWriter, r *http.Request, s *Session) {
 	var req struct {
 		Old string `json:"old"`

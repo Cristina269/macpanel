@@ -163,7 +163,7 @@ func (app *App) handleMonitorAction(w http.ResponseWriter, r *http.Request, s *S
 	apiOK(w, nil)
 }
 
-// checkMonitor 执行单次检查并按 ID 写回状态(值为拷贝,无并发问题)
+// checkMonitor runs a single check and writes the status back by ID (values are copies, so no concurrency issues)
 func (app *App) checkMonitor(id string) {
 	var m Monitor
 	found := false

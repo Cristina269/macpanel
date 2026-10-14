@@ -11,10 +11,10 @@ import (
 )
 
 type CronJob struct {
-	Index    int    `json:"index"` // 在 crontab 文件中的行号
+	Index    int    `json:"index"` // line number in the crontab file
 	Schedule string `json:"schedule"`
 	Command  string `json:"command"`
-	Name     string `json:"name"` // 行尾 # name 注释
+	Name     string `json:"name"` // trailing "# name" comment on the line
 	Enabled  bool   `json:"enabled"`
 }
 
@@ -36,7 +36,7 @@ func parseCronJobs(lines []string) []CronJob {
 		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
 			continue
 		}
-		// 字段: 分 时 日 月 周 命令...(支持 @reboot 等特殊调度,字段数为 6+)
+		// fields: min hour day month weekday command... (supports special schedules like @reboot, 6+ fields)
 		f := strings.Fields(trimmed)
 		if len(f) < 6 {
 			continue
@@ -65,7 +65,7 @@ func parseCronJobs(lines []string) []CronJob {
 		}
 		jobs = append(jobs, CronJob{Index: i, Schedule: sched, Command: cmd, Name: name, Enabled: true})
 	}
-	// 被禁用的(注释掉的)任务:形如 # 分 时 日 月 周 cmd
+	// disabled (commented-out) jobs: in the form "# min hour day month weekday cmd"
 	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		if !strings.HasPrefix(trimmed, "#") {
@@ -98,13 +98,13 @@ func (app *App) handleCronList(w http.ResponseWriter, r *http.Request, s *Sessio
 	apiOK(w, map[string]any{"jobs": parseCronJobs(lines)})
 }
 
-// backupCrontab 写回前备份
+// backupCrontab backs up the crontab before writing it back
 func backupCrontab(lines []string) {
 	dir := filepath.Join(dataDir, "cron-backup")
 	_ = os.MkdirAll(dir, 0o700)
 	name := time.Now().Format("20060102-150405") + ".crontab"
 	_ = os.WriteFile(filepath.Join(dir, name), []byte(strings.Join(lines, "\n")+"\n"), 0o600)
-	// 只保留最近 20 份
+	// keep only the latest 20 backups
 	entries, _ := os.ReadDir(dir)
 	if len(entries) > 20 {
 		for _, e := range entries[:len(entries)-20] {
@@ -131,7 +131,7 @@ func writeCrontab(lines []string) error {
 	return cmd.Wait()
 }
 
-// POST /api/cron/toggle {index} — 启用/禁用该行
+// POST /api/cron/toggle {index} — enable/disable that line
 func (app *App) handleCronToggle(w http.ResponseWriter, r *http.Request, s *Session) {
 	var req struct {
 		Index int `json:"index"`
@@ -167,7 +167,7 @@ func (app *App) handleCronToggle(w http.ResponseWriter, r *http.Request, s *Sess
 	apiOK(w, nil)
 }
 
-// POST /api/cron/save {index(-1=新增), schedule, command, name}
+// POST /api/cron/save {index (-1 = add new), schedule, command, name}
 func (app *App) handleCronSave(w http.ResponseWriter, r *http.Request, s *Session) {
 	var req struct {
 		Index    int    `json:"index"`

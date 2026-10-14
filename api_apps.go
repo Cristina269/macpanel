@@ -17,7 +17,7 @@ type BrewApp struct {
 	Desc    string `json:"desc"`
 	Pkg     string `json:"pkg"`
 	Ports   []int  `json:"ports"`
-	Service string `json:"service"` // brew services 名,空则无
+	Service string `json:"service"` // brew services name; empty if none
 }
 
 type ContainerApp struct {
@@ -26,7 +26,7 @@ type ContainerApp struct {
 	Desc    string   `json:"desc"`
 	Image   string   `json:"image"`
 	Ports   []int    `json:"ports"`
-	RunArgs []string `json:"run_args"` // 追加到 container run 的参数(-p/-v/-e 分开写)
+	RunArgs []string `json:"run_args"` // extra args appended to container run (-p/-v/-e listed separately)
 }
 
 type AppCatalog struct {
@@ -46,25 +46,25 @@ func loadCatalog() *AppCatalog {
 	return c
 }
 
-// GET /api/apps — 目录 + 已装状态
+// GET /api/apps — catalog + installed status
 func (app *App) handleAppList(w http.ResponseWriter, r *http.Request, s *Session) {
 	cat := loadCatalog()
 
-	// brew 已装集合
+	// set of installed brew packages
 	installed := map[string]bool{}
 	if out, code := runCmd(60*time.Second, brewBin(), "list", "--formula", "-1"); code == 0 {
 		for _, n := range strings.Fields(out) {
 			installed[n] = true
 		}
 	}
-	// 容器镜像集合
+	// set of container images
 	images := map[string]bool{}
 	if out, code := runCmd(30*time.Second, containerBinPath(), "ls", "--all", "--format", "json"); code == 0 {
 		var rows []ContainerRow
 		if json.Unmarshal([]byte(out), &rows) == nil {
 			for _, row := range rows {
 				images[row.Configuration.Image.Reference] = true
-				// 应用商店记录裸名,运行时可能带 mirror 前缀
+				// the catalog records bare names; at runtime the image may carry a mirror prefix
 				if i := strings.LastIndex(row.Configuration.Image.Reference, "/"); i >= 0 {
 					images[row.Configuration.Image.Reference[i+1:]] = true
 				}

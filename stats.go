@@ -8,12 +8,12 @@ import (
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/disk"
 	"github.com/shirou/gopsutil/v4/load"
-	gnet "github.com/shirou/gopsutil/v4/net"
 	"github.com/shirou/gopsutil/v4/mem"
+	gnet "github.com/shirou/gopsutil/v4/net"
 	"github.com/shirou/gopsutil/v4/process"
 )
 
-const ringSize = 900 // 5s × 900 = 75 分钟历史
+const ringSize = 900 // 5s × 900 = 75 minutes of history
 
 type ring struct {
 	mu   sync.Mutex
@@ -43,7 +43,7 @@ func (r *ring) snapshot() []float64 {
 	}
 	out := make([]float64, n)
 	if r.full {
-		// 已回绕:从 idx(最旧)拼接到 idx-1(最新),两段拷贝避免越界
+		// Wrapped: splice from idx (oldest) through idx-1 (newest); two copies avoid out-of-range
 		copy(out, r.buf[r.idx:])
 		copy(out[ringSize-r.idx:], r.buf[:r.idx])
 	} else {
@@ -79,7 +79,7 @@ func NewSampler() *Sampler {
 }
 
 func (s *Sampler) Start(every time.Duration) {
-	s.sampleOnce() // 先采一次,cpu.Percent(0) 首调无意义但初始化内部状态
+	s.sampleOnce() // sample once up front: the first cpu.Percent(0) call is a no-op but initializes internal state
 	go func() {
 		t := time.NewTicker(every)
 		defer t.Stop()
@@ -108,7 +108,7 @@ func (s *Sampler) sampleOnce() {
 	if l, err := load.Avg(); err == nil {
 		s.load1.push(l.Load1)
 	}
-	// 进程级采样 syscall 开销大,每 2 个 tick(≈10s)跑一次
+	// Process-level sampling is syscall-heavy; run it every 2nd tick (~10s)
 	s.procCount++
 	if s.lastProc.IsZero() || s.procCount%2 == 0 {
 		iv := time.Since(s.lastProc).Seconds()
@@ -165,7 +165,7 @@ func (s *Sampler) sampleProcs(interval float64) {
 	s.topProcs = top
 }
 
-// ---------- 采集辅助(gopsutil 的 macOS 兼容封装) ----------
+// ---------- Collection helpers (macOS-compatible wrappers over gopsutil) ----------
 
 type memInfo struct {
 	Total     uint64

@@ -15,13 +15,13 @@ import (
 var wsUpgrader = websocket.Upgrader{
 	ReadBufferSize:  4096,
 	WriteBufferSize: 4096,
-	CheckOrigin:     func(r *http.Request) bool { return true }, // 同源由会话 cookie 保证
+	CheckOrigin:     func(r *http.Request) bool { return true }, // same-origin is guaranteed by the session cookie
 }
 
-// GET /api/terminal?cmd=<可选,如 "ssh root@192.168.31.1"> — WS ↔ PTY
+// GET /api/terminal?cmd=<optional, e.g. "ssh root@192.168.31.1"> — WS ↔ PTY
 func (app *App) handleTerminal(w http.ResponseWriter, r *http.Request, s *Session) {
 	if app.store.Cfg.TLSCert == "" && r.Host != "" {
-		// 允许 HTTP,但审计记录
+		// HTTP is allowed, but audited
 		app.audit("terminal_open", clientIP(r)+" (HTTP)")
 	} else {
 		app.audit("terminal_open", clientIP(r))
@@ -77,7 +77,7 @@ func (app *App) handleTerminal(w http.ResponseWriter, r *http.Request, s *Sessio
 		}
 	}()
 
-	// WS → PTY(支持 {"type":"resize","cols":..,"rows":..})
+	// WS → PTY (supports {"type":"resize","cols":..,"rows":..})
 	for {
 		mt, data, err := ws.ReadMessage()
 		if err != nil {

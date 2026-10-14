@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,21 +11,21 @@
 <div id="login-layer">
   <div class="login-card">
     <h1>MacPanel</h1>
-    <div class="sub" id="login-sub">macOS 服务器面板</div>
+    <div class="sub" id="login-sub" data-i18n="macOS Server Panel">macOS Server Panel</div>
     <form id="login-form" data-form="login">
-      <label>用户名</label>
+      <label data-i18n="Username">Username</label>
       <input name="username" autocomplete="username" required>
-      <label>密码</label>
+      <label data-i18n="Password">Password</label>
       <input name="password" type="password" autocomplete="current-password" required>
-      <div style="margin-top:18px"><button type="submit" style="width:100%">登录</button></div>
+      <div style="margin-top:18px"><button type="submit" style="width:100%" data-i18n="Sign in">Sign in</button></div>
       <div id="login-err" class="sub" style="color:var(--err);margin-top:10px"></div>
     </form>
     <form id="setup-form" class="hidden" data-form="setup">
-      <label>设置管理员用户名</label>
+      <label data-i18n="Set admin username">Set admin username</label>
       <input name="username" autocomplete="username" required>
-      <label>设置密码(至少 10 位)</label>
+      <label data-i18n="Set password (at least 10 characters)">Set password (at least 10 characters)</label>
       <input name="password" type="password" autocomplete="new-password" required>
-      <div style="margin-top:18px"><button type="submit" style="width:100%">初始化面板</button></div>
+      <div style="margin-top:18px"><button type="submit" style="width:100%" data-i18n="Initialize panel">Initialize panel</button></div>
       <div id="setup-err" class="sub" style="color:var(--err);margin-top:10px"></div>
     </form>
   </div>
@@ -33,25 +33,29 @@
 
 <aside id="nav" class="hidden">
   <div class="logo">Mac<span>Panel</span></div>
-  <a href="#dashboard">📊 仪表盘</a>
-  <a href="#services">🧩 服务</a>
-  <a href="#monitors">📡 监控项</a>
-  <a href="#cron">⏰ 计划任务</a>
-  <a href="#ports">🔌 端口/入口</a>
-  <a href="#sites">🌐 网站</a>
-  <a href="#containers">📦 容器</a>
-  <a href="#apps">🛍 应用商店</a>
-  <a href="#terminal">💻 终端</a>
-  <a href="#ai">🤖 AI 助手</a>
-  <a href="#settings">⚙️ 设置</a>
-  <div class="foot" id="foot-user"></div>
+  <a href="#dashboard" data-i18n="📊 Dashboard">📊 Dashboard</a>
+  <a href="#services" data-i18n="🧩 Services">🧩 Services</a>
+  <a href="#monitors" data-i18n="📡 Monitors">📡 Monitors</a>
+  <a href="#cron" data-i18n="⏰ Cron Jobs">⏰ Cron Jobs</a>
+  <a href="#ports" data-i18n="🔌 Ports">🔌 Ports</a>
+  <a href="#sites" data-i18n="🌐 Sites">🌐 Sites</a>
+  <a href="#containers" data-i18n="📦 Containers">📦 Containers</a>
+  <a href="#apps" data-i18n="🛍 Apps">🛍 Apps</a>
+  <a href="#terminal" data-i18n="💻 Terminal">💻 Terminal</a>
+  <a href="#ai" data-i18n="🤖 AI Assistant">🤖 AI Assistant</a>
+  <a href="#settings" data-i18n="⚙️ Settings">⚙️ Settings</a>
+  <div class="foot"><button class="ghost small" id="lang-toggle" data-act="toggle-lang">中文</button><span id="foot-user"></span></div>
 </aside>
 
 <main id="main" class="hidden"></main>
 
 <div id="toasts"></div>
-<div id="modal" class="hidden"><div class="box"><h3 id="modal-title"></h3><div class="content" id="modal-content"></div><div style="margin-top:14px;text-align:right"><button class="ghost small" data-act="close-modal">关闭</button></div></div></div>
+<div id="modal" class="hidden"><div class="box"><h3 id="modal-title"></h3><div class="content" id="modal-content"></div><div style="margin-top:14px;text-align:right"><button class="ghost small" data-act="close-modal" data-i18n="Close">Close</button></div></div></div>
 
+<button class="ghost small" id="lang-toggle-float" data-act="toggle-lang" style="position:fixed;top:12px;right:14px;z-index:99">中文</button>
+
+<script src="/assets/i18n.js"></script>
+<script src="/assets/i18n-zh.js"></script>
 <script src="/assets/app.js"></script>
 </body>
 </html>

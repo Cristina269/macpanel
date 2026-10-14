@@ -134,7 +134,7 @@ func (app *App) handleLaunchdAction(w http.ResponseWriter, r *http.Request, s *S
 		apiErr(w, 400, "参数错误")
 		return
 	}
-	// 仅允许操作用户域(以及 /Library/LaunchAgents 里 gui 域可用的)
+	// only the user domain may be operated on (plus /Library/LaunchAgents entries usable in the gui domain)
 	plistPath := ""
 	for _, svc := range app.launchdCached() {
 		if svc.Label == req.Label {
@@ -158,7 +158,7 @@ func (app *App) handleLaunchdAction(w http.ResponseWriter, r *http.Request, s *S
 	case "start":
 		out, code = runCmd(0, "launchctl", "kickstart", target)
 		if code != 0 {
-			// 可能未加载,尝试 bootstrap
+			// possibly not loaded yet; try bootstrap
 			out2, code2 := runCmd(0, "launchctl", "bootstrap", "gui/"+strconv.Itoa(os.Getuid()), plistPath)
 			if code2 == 0 {
 				out, code = out2, code2
@@ -178,7 +178,7 @@ func (app *App) handleLaunchdAction(w http.ResponseWriter, r *http.Request, s *S
 	apiOK(w, map[string]any{"output": strings.TrimSpace(out)})
 }
 
-// launchdCached 快速重扫(不缓存,直接现查;量小无妨)
+// launchdCached rescans quickly (no cache, queries live; the volume is small so it's fine)
 func (app *App) launchdCached() []LaunchdService {
 	state := launchdState()
 	services := []LaunchdService{}

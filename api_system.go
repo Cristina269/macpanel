@@ -14,7 +14,7 @@ import (
 	"github.com/shirou/gopsutil/v4/process"
 )
 
-// GET /api/system/status — 当前快照
+// GET /api/system/status — current snapshot
 func (app *App) handleStatus(w http.ResponseWriter, r *http.Request, s *Session) {
 	out := map[string]any{}
 	if v, err := cpu.Percent(0, false); err == nil && len(v) > 0 {
@@ -44,7 +44,7 @@ func (app *App) handleStatus(w http.ResponseWriter, r *http.Request, s *Session)
 	apiOK(w, out)
 }
 
-// GET /api/system/history — 30 分钟历史曲线
+// GET /api/system/history — 30-minute history curves
 func (app *App) handleHistory(w http.ResponseWriter, r *http.Request, s *Session) {
 	sp := app.sampler
 	apiOK(w, map[string]any{
@@ -85,19 +85,19 @@ func diskList() []map[string]any {
 			continue
 		}
 		out = append(out, map[string]any{
-			"mount":     p.Mountpoint,
-			"fstype":    p.Fstype,
-			"device":    p.Device,
-			"total":     du.Total,
-			"used":      du.Used,
-			"free":      du.Free,
-			"used_pct":  du.UsedPercent,
+			"mount":    p.Mountpoint,
+			"fstype":   p.Fstype,
+			"device":   p.Device,
+			"total":    du.Total,
+			"used":     du.Used,
+			"free":     du.Free,
+			"used_pct": du.UsedPercent,
 		})
 	}
 	return out
 }
 
-// GET /api/system/ports — 监听端口 + 进程名
+// GET /api/system/ports — listening ports + process names
 func (app *App) handlePorts(w http.ResponseWriter, r *http.Request, s *Session) {
 	cons, err := gnet.Connections("inet")
 	if err != nil {
@@ -182,7 +182,7 @@ func (app *App) handlePortFavorite(w http.ResponseWriter, r *http.Request, s *Se
 	apiOK(w, nil)
 }
 
-// GET /api/system/probe?port=8080 — 健康探测
+// GET /api/system/probe?port=8080 — health probe
 func (app *App) handleProbe(w http.ResponseWriter, r *http.Request, s *Session) {
 	portStr := r.URL.Query().Get("port")
 	port, err := strconv.Atoi(portStr)

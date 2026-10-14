@@ -1,73 +1,75 @@
+English | [简体中文](README.zh-CN.md)
+
 # MacPanel
 
-自研 macOS 服务器面板。Go 单二进制(~13MB,常驻内存 ~20-30MB),前端零构建链、无 CDN 依赖,全部资源由二进制内嵌。
+An in-house-built macOS server panel. A single Go binary (~13 MB, ~20–30 MB resident memory), a frontend with no build toolchain and no CDN dependencies — every asset is embedded in the binary.
 
-## 功能
+## Features
 
-| 模块 | 说明 |
+| Module | Description |
 |---|---|
-| 仪表盘 | CPU / 内存 / 网络 / 磁盘 I/O 实时曲线(5s 采样,75 分钟历史)、Top 进程、磁盘挂载 |
-| 服务 | launchd(LaunchAgents/LaunchDaemons 只读+用户域可操作)、`brew services` 启停 |
-| 监控项 | 自定义监控(launchd / 端口 / HTTP / 进程名),60s 自动检查,可直接重启关联服务 |
-| 计划任务 | crontab 可视化增删改/启用禁用;写回前自动备份到 `data/cron-backup/`(保留 20 份) |
-| 端口/入口 | 监听端口+进程名,收藏、已知服务标注、HTTP 探测、快捷打开 |
-| 网站 | Caddy 反代/静态站管理:生成 Caddyfile → `caddy validate` → 热加载 |
-| 容器 | Apple `container` 管理:列表/启停/删除/日志/创建 |
-| 应用商店 | brew 型 + container 型常用应用(参考宝塔/1Panel 目录),后台 job 实时日志 |
-| 终端 | 网页 SSH(PTY),xterm.js,支持窗口 resize 与快捷命令 |
-| AI 助手 | DeepSeek / OpenAI 兼容接口,SSE 流式;可附带系统实时快照做诊断 |
-| 安全 | argon2id、会话+CSRF、登录限速、入口路径、IP 白名单、TLS、审计日志 |
+| Dashboard | Real-time CPU / memory / network / disk I/O charts (5s sampling, 75 minutes of history), top processes, mounted disks |
+| Services | launchd (LaunchAgents/LaunchDaemons read-only, user domain manageable) and `brew services` start/stop |
+| Monitors | Custom checks (launchd / port / HTTP / process name), auto-checked every 60s, with one-click restart of the linked service |
+| Cron jobs | Visual add/edit/delete and enable/disable of crontab entries; automatic backup to `data/cron-backup/` before every write-back (last 20 kept) |
+| Ports | Listening ports with their process names, favorites, known-service annotations, HTTP probing, quick open |
+| Websites | Caddy reverse-proxy and static site management: generate Caddyfile → `caddy validate` → hot reload |
+| Containers | Apple `container` management: list / start / stop / delete / logs / create |
+| App store | Popular apps as brew packages or containers (catalog modeled on BaoTa / 1Panel), with live logs for background jobs |
+| Terminal | Web SSH (PTY) via xterm.js, with window resize and quick commands |
+| AI assistant | DeepSeek / OpenAI-compatible APIs over SSE streaming; can attach a live system snapshot to help with diagnostics |
+| Security | argon2id, session + CSRF, login rate limiting, entrance path, IP allowlist, TLS, audit log |
 
-## 快速开始
+## Quick start
 
 ```bash
-./build.sh                          # 构建
-./macpanel                          # 默认监听 :9000,数据目录 ~/macpanel/data
+./build.sh                          # Build
+./macpanel                          # Listens on :9000 by default; data directory ~/macpanel/data
 ```
 
-首次访问 `http://<主机>:9000/` 会进入初始化向导:创建管理员(密码 ≥10 位)后自动生成**入口路径**(如 `/p_xxxx/`),请立即收藏。
+The first visit to `http://<host>:9000/` starts the setup wizard: once you create the admin account (password ≥ 10 characters), an **entrance path** (e.g. `/p_xxxx/`) is generated automatically — bookmark it immediately.
 
-### launchd 常驻
+### Run persistently under launchd
 
 ```bash
 cp com.macpanel.plist ~/Library/LaunchAgents/
-# 编辑 plist,把其中的 /Users/zyh/macpanel 改成你的实际路径
+# Edit the plist and change /Users/zyh/macpanel to your actual path
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.macpanel.plist
 ```
 
-## 安全设计(按公网直连标准)
+## Security design (built to be exposed directly to the public internet)
 
-监听 `:9000` 会绑定 IPv4+IPv6 双栈 —— 若主机有公网 IPv6(如 `panel.example.com` 直连模式),面板即暴露公网。以下机制默认生效:
+Listening on `:9000` binds both IPv4 and IPv6 — if the host has a public IPv6 address (e.g. `panel.example.com` in direct mode), the panel is on the public internet. The following mechanisms are in effect by default:
 
-1. **入口路径**:除 `/api/*`、`/assets/*` 外的所有路径 302 到入口;扫描器拿不到页面结构
-2. **argon2id** 密码哈希;用户不存在时也做等时哈希,防时间侧信道
-3. **登录限速**:同 IP 5 次失败锁 15 分钟(指数退避 15m→30m→60m→120m)
-4. **会话**:256-bit token,HttpOnly + SameSite=Lax,24h 滑动过期;TLS 开启时自动加 Secure
-5. **CSRF**:所有非 GET API 要求 `X-Panel-CSRF` 头;安全响应头(X-Frame-Options/CSP/nosniff)
-6. **审计**:登录、终端打开、所有运维操作记入 `data/audit.log`(JSONL)
+1. **Entrance path**: every path outside `/api/*` and `/assets/*` 302-redirects to the entrance; scanners never see the page structure
+2. **argon2id** password hashing; a constant-time hash is computed even for nonexistent users, preventing timing side channels
+3. **Login rate limiting**: 5 failures from one IP locks it for 15 minutes (exponential backoff 15m→30m→60m→120m)
+4. **Sessions**: 256-bit token, HttpOnly + SameSite=Lax, 24h sliding expiry; `Secure` is added automatically once TLS is on
+5. **CSRF**: every non-GET API call requires the `X-Panel-CSRF` header; security response headers included (X-Frame-Options/CSP/nosniff)
+6. **Audit**: logins, terminal opens, and all administrative operations are recorded in `data/audit.log` (JSONL)
 
-**强烈建议初始化后立即配置 TLS**(设置 → 安全/网络):填入 acme.sh 签发的证书/私钥路径,重启面板即启用 HTTPS,可选配 HTTP 跳转端口。示例:
+**Configuring TLS immediately after initialization is strongly recommended** (Settings → Security/Network): enter the certificate and private key paths issued by acme.sh, then restart the panel to enable HTTPS, with an optional HTTP redirect port. Example:
 
 ```bash
-~/.acme.sh/acme.sh --issue --dns dns_cf -d panel.example.com   # 复用现有 CF token
+~/.acme.sh/acme.sh --issue --dns dns_cf -d panel.example.com   # reuses the existing CF token
 ```
 
-可选:**IP 白名单**(设置里每行一条,支持 `192.168.31.` 前缀写法)。
+Optional: an **IP allowlist** (one entry per line in Settings, `192.168.31.` prefix notation supported).
 
-### ⚠️ 终端页风险
+### ⚠️ Terminal page risk
 
-Web 终端 = 登录后可获得主机任意命令执行能力(PTY)。已做:仅登录会话可用 + 每次打开审计。请务必:启用 TLS(否则终端流量明文)、不与他人共享会话、定期查看审计日志。
+The web terminal means anyone with a login gets arbitrary command execution on the host (PTY). Mitigations in place: usable only by a logged-in session + an audit entry on every open. Be sure to: enable TLS (otherwise terminal traffic is plaintext), never share your session, and review the audit log regularly.
 
-## 配置文件
+## Configuration file
 
-`data/config.json`(0600)。常规修改走界面;直接改文件后重启面板。
+`data/config.json` (0600). Make routine changes through the UI; if you edit the file directly, restart the panel afterwards.
 
 ```jsonc
 {
-  "listen": ":9000",          // 监听地址(重启生效)
-  "http_port": "",            // TLS 启用时的 HTTP→HTTPS 跳转端口
-  "entrance": "p_xxxxxx",     // 入口路径
-  "tls_cert": "", "tls_key": "",  // 两者都填才启用 HTTPS(重启生效)
+  "listen": ":9000",          // listen address (takes effect on restart)
+  "http_port": "",            // HTTP→HTTPS redirect port while TLS is enabled
+  "entrance": "p_xxxxxx",     // entrance path
+  "tls_cert": "", "tls_key": "",  // HTTPS is enabled only when both are set (takes effect on restart)
   "session_hours": 24,
   "ip_allowlist": [],
   "known_services": [{"port": 8083, "name": "Nextcloud", "url": "http://192.168.64.4:8083"}],
@@ -75,42 +77,42 @@ Web 终端 = 登录后可获得主机任意命令执行能力(PTY)。已做:仅�
 }
 ```
 
-## 目录结构
+## Directory layout
 
 ```
 ~/macpanel/
-├── macpanel              # 二进制
-├── data/                 # 运行数据(自动创建)
-│   ├── config.json       # 配置(0600)
-│   ├── audit.log         # 审计日志
-│   ├── cron-backup/      # crontab 写回前备份
-│   ├── caddy/Caddyfile   # 面板生成的 Caddy 配置
-│   └── panel.log         # launchd 启动时的 stdout/stderr
+├── macpanel              # binary
+├── data/                 # runtime data (created automatically)
+│   ├── config.json       # configuration (0600)
+│   ├── audit.log         # audit log
+│   ├── cron-backup/      # crontab backups taken before write-back
+│   ├── caddy/Caddyfile   # Caddy configuration generated by the panel
+│   └── panel.log         # stdout/stderr when started by launchd
 ├── com.macpanel.plist    # launchd agent
-└── web/                  # 前端源码(go:embed 内嵌,改完需重新 build)
+└── web/                  # frontend source (embedded via go:embed; rebuild after changes)
 ```
 
-## 网站管理(Caddy)
+## Website management (Caddy)
 
-站点模型:反代(`reverse_proxy 127.0.0.1:PORT`)或静态(`root * DIR + file_server`);TLS 支持 无 / internal(Caddy 自签 CA,仅内网可信)/ 证书文件(acme.sh 签发的 fullchain.cer + .key 路径)。
+Site model: reverse proxy (`reverse_proxy 127.0.0.1:PORT`) or static site (`root * DIR` + `file_server`); TLS options are none / internal (Caddy's self-signed CA, trusted on the local network only) / certificate files (fullchain.cer + .key paths issued by acme.sh).
 
-保存后面板:生成 `data/caddy/Caddyfile` → `caddy validate` → 写 brew 默认位置 `/opt/homebrew/etc/Caddyfile`(一行 import)→ `caddy reload` 热加载。未装 Caddy 时仅保存配置,应用商店一键安装。
+On save the panel: generates `data/caddy/Caddyfile` → `caddy validate` → writes it to the brew default location `/opt/homebrew/etc/Caddyfile` (a one-line import) → `caddy reload` for a hot reload. If Caddy is not installed, the configuration is only saved; the app store can install it in one click.
 
-## 计划任务约定
+## Cron conventions
 
-面板解析 crontab 标准 5 字段 + `@reboot` 等特殊调度;行尾 ` # 备注` 会被识别为任务名;注释掉的定时行 = 已禁用(切换即加/去 `# `,写回前自动备份)。
+The panel parses standard 5-field crontab entries plus special schedules such as `@reboot`; a trailing ` # note` on a line is recognized as the job name; a commented-out cron line means the job is disabled (toggling adds or removes `# `, with an automatic backup before write-back).
 
-## 容器
+## Containers
 
-基于 Apple `container`(`container ls/logs/run/stop/start/delete`)。应用商店的容器应用走 `docker.m.daocloud.io` 镜像源;`container run` 参数有白名单校验(端口映射/环境变量/挂载格式)。
+Built on Apple `container` (`container ls/logs/run/stop/start/delete`). Container apps in the app store pull images from the `docker.m.daocloud.io` mirror; `container run` arguments are validated against a whitelist (port mapping / environment variable / mount formats).
 
-## 开发
+## Development
 
 ```bash
 ./build.sh                 # = go vet + go build
-go run ./cmd/wstest ws://127.0.0.1:9000/api/terminal <session-cookie>   # 终端 WS 冒烟测试
+go run ./cmd/wstest ws://127.0.0.1:9000/api/terminal <session-cookie>   # terminal WS smoke test
 ```
 
-- 后端:Go stdlib + gopsutil/v4 + gorilla/websocket + creack/pty + x/crypto/argon2
-- 前端:原生 JS SPA(hash 路由),canvas 自绘图表,xterm.js 已 vendor 到 `web/assets/`
-- CSP 为 `default-src 'self'`,**前端禁止内联脚本/事件**,一律 `data-act` 事件委托
+- Backend: Go stdlib + gopsutil/v4 + gorilla/websocket + creack/pty + x/crypto/argon2
+- Frontend: vanilla JS SPA (hash routing), charts drawn directly on canvas, xterm.js vendored into `web/assets/`
+- CSP is `default-src 'self'`; **inline scripts and event handlers are forbidden in the frontend** — use `data-act` event delegation exclusively

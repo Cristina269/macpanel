@@ -1,9 +1,9 @@
 package main
 
 import (
-	"time"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type BrewPkg struct {
@@ -88,7 +88,7 @@ func (app *App) handleBrewAction(w http.ResponseWriter, r *http.Request, s *Sess
 		apiErr(w, 400, "未知操作")
 		return
 	}
-	// 卸载要求二次确认字段
+	// uninstall requires a confirmation header
 	if req.Action == "uninstall" && r.Header.Get("X-Panel-Confirm") != "yes" {
 		apiErr(w, 400, "缺少确认头")
 		return
