@@ -4,6 +4,10 @@ English | [简体中文](README.zh-CN.md)
 
 An in-house-built macOS server panel. A single Go binary (~13 MB, ~20–30 MB resident memory), a frontend with no build toolchain and no CDN dependencies — every asset is embedded in the binary.
 
+<p align="center">
+  <img src="docs/dashboard.png" width="960" alt="MacPanel dashboard: live CPU / memory / network / disk charts, disk mounts and top processes">
+</p>
+
 ## Features
 
 | Module | Description |

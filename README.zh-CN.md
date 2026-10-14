@@ -4,6 +4,10 @@
 
 自研 macOS 服务器面板。Go 单二进制(~13MB,常驻内存 ~20-30MB),前端零构建链、无 CDN 依赖,全部资源由二进制内嵌。
 
+<p align="center">
+  <img src="docs/dashboard.png" width="960" alt="MacPanel 仪表盘:CPU / 内存 / 网络 / 磁盘实时曲线、磁盘挂载与 Top 进程">
+</p>
+
 ## 功能
 
 | 模块 | 说明 |
