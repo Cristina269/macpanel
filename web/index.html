@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MacPanel</title>
+<link rel="stylesheet" href="/assets/style.css">
+<link rel="stylesheet" href="/assets/xterm.min.css">
+</head>
+<body>
+<div id="login-layer">
+  <div class="login-card">
+    <h1>MacPanel</h1>
+    <div class="sub" id="login-sub">macOS 服务器面板</div>
+    <form id="login-form" data-form="login">
+      <label>用户名</label>
+      <input name="username" autocomplete="username" required>
+      <label>密码</label>
+      <input name="password" type="password" autocomplete="current-password" required>
+      <div style="margin-top:18px"><button type="submit" style="width:100%">登录</button></div>
+      <div id="login-err" class="sub" style="color:var(--err);margin-top:10px"></div>
+    </form>
+    <form id="setup-form" class="hidden" data-form="setup">
+      <label>设置管理员用户名</label>
+      <input name="username" autocomplete="username" required>
+      <label>设置密码(至少 10 位)</label>
+      <input name="password" type="password" autocomplete="new-password" required>
+      <div style="margin-top:18px"><button type="submit" style="width:100%">初始化面板</button></div>
+      <div id="setup-err" class="sub" style="color:var(--err);margin-top:10px"></div>
+    </form>
+  </div>
+</div>
+
+<aside id="nav" class="hidden">
+  <div class="logo">Mac<span>Panel</span></div>
+  <a href="#dashboard">📊 仪表盘</a>
+  <a href="#services">🧩 服务</a>
+  <a href="#monitors">📡 监控项</a>
+  <a href="#cron">⏰ 计划任务</a>
+  <a href="#ports">🔌 端口/入口</a>
+  <a href="#sites">🌐 网站</a>
+  <a href="#containers">📦 容器</a>
+  <a href="#apps">🛍 应用商店</a>
+  <a href="#terminal">💻 终端</a>
+  <a href="#ai">🤖 AI 助手</a>
+  <a href="#settings">⚙️ 设置</a>
+  <div class="foot" id="foot-user"></div>
+</aside>
+
+<main id="main" class="hidden"></main>
+
+<div id="toasts"></div>
+<div id="modal" class="hidden"><div class="box"><h3 id="modal-title"></h3><div class="content" id="modal-content"></div><div style="margin-top:14px;text-align:right"><button class="ghost small" data-act="close-modal">关闭</button></div></div></div>
+
+<script src="/assets/app.js"></script>
+</body>
+</html>
