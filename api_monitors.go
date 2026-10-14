@@ -29,17 +29,17 @@ func (app *App) handleMonitorAdd(w http.ResponseWriter, r *http.Request, s *Sess
 		Enabled bool   `json:"enabled"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		apiErr(w, 400, "参数错误")
+		apiErr(w, 400, "Invalid request")
 		return
 	}
 	switch req.Type {
 	case "launchd", "port", "http", "process":
 	default:
-		apiErr(w, 400, "类型须为 launchd/port/http/process")
+		apiErr(w, 400, "Type must be launchd/port/http/process")
 		return
 	}
 	if req.Name == "" || req.Target == "" {
-		apiErr(w, 400, "名称和目标不能为空")
+		apiErr(w, 400, "Name and target are required")
 		return
 	}
 	m := Monitor{ID: randomToken(8), Name: req.Name, Type: req.Type, Target: req.Target, Enabled: req.Enabled}
@@ -58,7 +58,7 @@ func (app *App) handleMonitorDelete(w http.ResponseWriter, r *http.Request, s *S
 		ID string `json:"id"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		apiErr(w, 400, "参数错误")
+		apiErr(w, 400, "Invalid request")
 		return
 	}
 	_ = app.store.Update(func(c *Config) {
@@ -80,7 +80,7 @@ func (app *App) handleMonitorToggle(w http.ResponseWriter, r *http.Request, s *S
 		Enabled bool   `json:"enabled"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		apiErr(w, 400, "参数错误")
+		apiErr(w, 400, "Invalid request")
 		return
 	}
 	_ = app.store.Update(func(c *Config) {
@@ -99,7 +99,7 @@ func (app *App) handleMonitorCheck(w http.ResponseWriter, r *http.Request, s *Se
 		ID string `json:"id"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		apiErr(w, 400, "参数错误")
+		apiErr(w, 400, "Invalid request")
 		return
 	}
 	app.checkMonitor(req.ID)
@@ -113,7 +113,7 @@ func (app *App) handleMonitorCheck(w http.ResponseWriter, r *http.Request, s *Se
 		}
 	})
 	if mon == nil {
-		apiErr(w, 404, "未找到")
+		apiErr(w, 404, "Not found")
 		return
 	}
 	apiOK(w, map[string]any{"monitor": mon})
@@ -126,7 +126,7 @@ func (app *App) handleMonitorAction(w http.ResponseWriter, r *http.Request, s *S
 		Action string `json:"action"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		apiErr(w, 400, "参数错误")
+		apiErr(w, 400, "Invalid request")
 		return
 	}
 	var target string
@@ -138,7 +138,7 @@ func (app *App) handleMonitorAction(w http.ResponseWriter, r *http.Request, s *S
 		}
 	})
 	if target == "" {
-		apiErr(w, 404, "未找到或类型不支持")
+		apiErr(w, 404, "Not found or unsupported monitor type")
 		return
 	}
 	label := "gui/" + fmt.Sprint(os.Getuid()) + "/" + target
@@ -152,7 +152,7 @@ func (app *App) handleMonitorAction(w http.ResponseWriter, r *http.Request, s *S
 	case "stop":
 		out, code = runCmd(0, "launchctl", "bootout", label)
 	default:
-		apiErr(w, 400, "未知操作")
+		apiErr(w, 400, "Unknown action")
 		return
 	}
 	app.audit("monitor_"+req.Action, target)
@@ -183,7 +183,7 @@ func (app *App) checkMonitor(id string) {
 	case "port":
 		host, port, has := splitHostPort(m.Target)
 		if !has {
-			errOut = "目标须为 host:port"
+			errOut = "Target must be host:port"
 			break
 		}
 		d := net.Dialer{Timeout: 3 * time.Second}
@@ -211,13 +211,13 @@ func (app *App) checkMonitor(id string) {
 		out, code := runCmd(10*time.Second, "pgrep", "-f", m.Target)
 		ok = code == 0 && strings.TrimSpace(out) != ""
 		if !ok {
-			errOut = "进程未找到"
+			errOut = "Process not found"
 		}
 	case "launchd":
 		out, code := runCmd(10*time.Second, "launchctl", "print", "gui/"+fmt.Sprint(os.Getuid())+"/"+m.Target)
 		ok = code == 0 && strings.Contains(out, "state = running")
 		if !ok {
-			errOut = "服务未运行"
+			errOut = "Service not running"
 		}
 	}
 	ms := float64(time.Since(start).Microseconds()) / 1000

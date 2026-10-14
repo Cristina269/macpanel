@@ -30,7 +30,7 @@ func (app *App) handleAISet(w http.ResponseWriter, r *http.Request, s *Session) 
 		Key     string `json:"key"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		apiErr(w, 400, "参数错误")
+		apiErr(w, 400, "Invalid request")
 		return
 	}
 	err := app.store.Update(func(c *Config) {
@@ -48,7 +48,7 @@ func (app *App) handleAISet(w http.ResponseWriter, r *http.Request, s *Session) 
 		apiErr(w, 500, err.Error())
 		return
 	}
-	app.audit("ai_settings", "更新 AI 配置")
+	app.audit("ai_settings", "Updated AI settings")
 	apiOK(w, nil)
 }
 
@@ -57,7 +57,7 @@ func (app *App) handleAIChat(w http.ResponseWriter, r *http.Request, s *Session)
 	var ai AISettings
 	app.store.Read(func(c *Config) { ai = c.AI })
 	if ai.Key == "" {
-		apiErr(w, 400, "未配置 AI API Key,请到 设置 → AI 配置")
+		apiErr(w, 400, "AI API key not configured. Go to Settings → AI")
 		return
 	}
 	var req struct {
@@ -65,7 +65,7 @@ func (app *App) handleAIChat(w http.ResponseWriter, r *http.Request, s *Session)
 		Diagnose bool                `json:"diagnose"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		apiErr(w, 400, "参数错误")
+		apiErr(w, 400, "Invalid request")
 		return
 	}
 	msgs := req.Messages
@@ -73,12 +73,12 @@ func (app *App) handleAIChat(w http.ResponseWriter, r *http.Request, s *Session)
 		snapshot := app.aiSystemSnapshot()
 		sys := map[string]string{
 			"role":    "system",
-			"content": "你是 MacPanel 内置的系统运维助手。以下是这台 macOS 服务器的实时状态快照(JSON),请据此回答用户的运维问题,用中文:\n" + snapshot,
+			"content": "You are the built-in system operations assistant of MacPanel. Below is a live status snapshot of this macOS server (JSON). Answer the user's operations questions based on it, in English:\n" + snapshot,
 		}
 		msgs = append([]map[string]string{sys}, msgs...)
 	}
 	if len(msgs) == 0 {
-		apiErr(w, 400, "消息为空")
+		apiErr(w, 400, "Message list is empty")
 		return
 	}
 	payload, _ := json.Marshal(map[string]any{
@@ -100,13 +100,13 @@ func (app *App) handleAIChat(w http.ResponseWriter, r *http.Request, s *Session)
 	client := &http.Client{Timeout: 5 * time.Minute}
 	upstream, err := client.Do(proxyReq)
 	if err != nil {
-		apiErr(w, 502, "上游请求失败: "+err.Error())
+		apiErr(w, 502, "Upstream request failed: "+err.Error())
 		return
 	}
 	defer upstream.Body.Close()
 	if upstream.StatusCode != 200 {
 		b, _ := io.ReadAll(io.LimitReader(upstream.Body, 4096))
-		apiErr(w, upstream.StatusCode, "上游错误: "+string(b))
+		apiErr(w, upstream.StatusCode, "Upstream error: "+string(b))
 		return
 	}
 	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")

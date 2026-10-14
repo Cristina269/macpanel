@@ -64,13 +64,13 @@ func (app *App) handleContainerList(w http.ResponseWriter, r *http.Request, s *S
 		// older versions may not support --all
 		out, code = runCmd(30*time.Second, containerBinPath(), "ls", "--format", "json")
 		if code != 0 {
-			apiErr(w, 500, "container ls 失败: "+strings.TrimSpace(out))
+			apiErr(w, 500, "container ls failed: "+strings.TrimSpace(out))
 			return
 		}
 	}
 	rows := []ContainerRow{}
 	if err := json.Unmarshal([]byte(out), &rows); err != nil {
-		apiErr(w, 500, "解析 container 输出失败: "+err.Error())
+		apiErr(w, 500, "Failed to parse container output: "+err.Error())
 		return
 	}
 	list := []ContainerInfo{}
@@ -101,11 +101,11 @@ func (app *App) handleContainerAction(w http.ResponseWriter, r *http.Request, s 
 		Action string `json:"action"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		apiErr(w, 400, "参数错误")
+		apiErr(w, 400, "Invalid request")
 		return
 	}
 	if !safeName(req.ID) {
-		apiErr(w, 400, "容器名不合法")
+		apiErr(w, 400, "Invalid container name")
 		return
 	}
 	var args []string
@@ -118,18 +118,18 @@ func (app *App) handleContainerAction(w http.ResponseWriter, r *http.Request, s 
 		args = []string{"stop", req.ID}
 	case "delete":
 		if r.Header.Get("X-Panel-Confirm") != "yes" {
-			apiErr(w, 400, "缺少确认头")
+			apiErr(w, 400, "Missing confirmation header")
 			return
 		}
 		args = []string{"delete", "--force", req.ID}
 	default:
-		apiErr(w, 400, "未知操作")
+		apiErr(w, 400, "Unknown action")
 		return
 	}
 	if req.Action == "restart" {
 		_, code := runCmd(60*time.Second, containerBinPath(), args...)
 		if code != 0 {
-			apiErr(w, 500, "停止失败")
+			apiErr(w, 500, "Failed to stop container")
 			return
 		}
 		args = []string{"start", req.ID}
@@ -147,12 +147,12 @@ func (app *App) handleContainerAction(w http.ResponseWriter, r *http.Request, s 
 func (app *App) handleContainerLogs(w http.ResponseWriter, r *http.Request, s *Session) {
 	id := r.URL.Query().Get("id")
 	if !safeName(id) {
-		apiErr(w, 400, "容器名不合法")
+		apiErr(w, 400, "Invalid container name")
 		return
 	}
 	out, code := runCmd(30*time.Second, containerBinPath(), "logs", id)
 	if code != 0 && strings.TrimSpace(out) == "" {
-		apiErr(w, 500, "获取日志失败")
+		apiErr(w, 500, "Failed to get logs")
 		return
 	}
 	lines := strings.Split(strings.TrimSpace(out), "\n")
@@ -186,31 +186,31 @@ func (app *App) handleContainerRun(w http.ResponseWriter, r *http.Request, s *Se
 		Mounts []string `json:"mounts"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		apiErr(w, 400, "参数错误")
+		apiErr(w, 400, "Invalid request")
 		return
 	}
 	if !safeName(req.Name) || req.Image == "" || strings.ContainsAny(req.Image, ";|&$`") {
-		apiErr(w, 400, "参数不合法")
+		apiErr(w, 400, "Invalid parameters")
 		return
 	}
 	args := []string{"run", "-d", "--name", req.Name}
 	for _, p := range req.Ports {
 		if !safePortMap(p) {
-			apiErr(w, 400, "端口映射不合法: "+p)
+			apiErr(w, 400, "Invalid port mapping: "+p)
 			return
 		}
 		args = append(args, "-p", p)
 	}
 	for _, e := range req.Env {
 		if !safeEnv(e) {
-			apiErr(w, 400, "环境变量不合法: "+e)
+			apiErr(w, 400, "Invalid environment variable: "+e)
 			return
 		}
 		args = append(args, "-e", e)
 	}
 	for _, m := range req.Mounts {
 		if !safeMount(m) {
-			apiErr(w, 400, "挂载不合法: "+m)
+			apiErr(w, 400, "Invalid mount: "+m)
 			return
 		}
 		args = append(args, "-v", m)

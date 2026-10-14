@@ -101,7 +101,7 @@ func diskList() []map[string]any {
 func (app *App) handlePorts(w http.ResponseWriter, r *http.Request, s *Session) {
 	cons, err := gnet.Connections("inet")
 	if err != nil {
-		apiErr(w, 500, "获取连接失败: "+err.Error())
+		apiErr(w, 500, "Failed to list connections: "+err.Error())
 		return
 	}
 	type portInfo struct {
@@ -160,7 +160,7 @@ func (app *App) handlePortFavorite(w http.ResponseWriter, r *http.Request, s *Se
 		Fav  bool `json:"fav"`
 	}
 	if err := readJSON(r, &req); err != nil || req.Port <= 0 {
-		apiErr(w, 400, "参数错误")
+		apiErr(w, 400, "Invalid request")
 		return
 	}
 	err := app.store.Update(func(c *Config) {
@@ -187,7 +187,7 @@ func (app *App) handleProbe(w http.ResponseWriter, r *http.Request, s *Session) 
 	portStr := r.URL.Query().Get("port")
 	port, err := strconv.Atoi(portStr)
 	if err != nil || port <= 0 || port > 65535 {
-		apiErr(w, 400, "端口无效")
+		apiErr(w, 400, "Invalid port")
 		return
 	}
 	start := time.Now()

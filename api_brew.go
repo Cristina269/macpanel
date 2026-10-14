@@ -15,7 +15,7 @@ type BrewPkg struct {
 func (app *App) handleBrewInstalled(w http.ResponseWriter, r *http.Request, s *Session) {
 	out, code := runCmd(60*time.Second, brewBin(), "list", "--versions")
 	if code != 0 {
-		apiErr(w, 500, "brew list 失败: "+out)
+		apiErr(w, 500, "brew list failed: "+out)
 		return
 	}
 	pkgs := []BrewPkg{}
@@ -32,12 +32,12 @@ func (app *App) handleBrewInstalled(w http.ResponseWriter, r *http.Request, s *S
 func (app *App) handleBrewSearch(w http.ResponseWriter, r *http.Request, s *Session) {
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	if q == "" || !safeName(q) {
-		apiErr(w, 400, "搜索词无效")
+		apiErr(w, 400, "Invalid search term")
 		return
 	}
 	out, code := runCmd(60*time.Second, brewBin(), "search", q)
 	if code != 0 {
-		apiErr(w, 500, "brew search 失败: "+out)
+		apiErr(w, 500, "brew search failed: "+out)
 		return
 	}
 	names := []string{}
@@ -57,7 +57,7 @@ func (app *App) handleBrewSearch(w http.ResponseWriter, r *http.Request, s *Sess
 func (app *App) handleBrewInfo(w http.ResponseWriter, r *http.Request, s *Session) {
 	name := strings.TrimSpace(r.URL.Query().Get("name"))
 	if !safeName(name) {
-		apiErr(w, 400, "名称无效")
+		apiErr(w, 400, "Invalid name")
 		return
 	}
 	out, code := runCmd(60*time.Second, brewBin(), "info", name)
@@ -75,22 +75,22 @@ func (app *App) handleBrewAction(w http.ResponseWriter, r *http.Request, s *Sess
 		Action string `json:"action"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		apiErr(w, 400, "参数错误")
+		apiErr(w, 400, "Invalid request")
 		return
 	}
 	if !safeName(req.Name) {
-		apiErr(w, 400, "名称无效")
+		apiErr(w, 400, "Invalid name")
 		return
 	}
 	switch req.Action {
 	case "install", "uninstall", "upgrade":
 	default:
-		apiErr(w, 400, "未知操作")
+		apiErr(w, 400, "Unknown action")
 		return
 	}
 	// uninstall requires a confirmation header
 	if req.Action == "uninstall" && r.Header.Get("X-Panel-Confirm") != "yes" {
-		apiErr(w, 400, "缺少确认头")
+		apiErr(w, 400, "Missing confirmation header")
 		return
 	}
 	j := app.jobs.Start("brew "+req.Action+" "+req.Name, brewBin(), req.Action, req.Name)

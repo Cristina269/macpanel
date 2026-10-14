@@ -131,7 +131,7 @@ func (app *App) handleLaunchdAction(w http.ResponseWriter, r *http.Request, s *S
 		Action string `json:"action"`
 	}
 	if err := readJSON(r, &req); err != nil || req.Label == "" {
-		apiErr(w, 400, "参数错误")
+		apiErr(w, 400, "Invalid request")
 		return
 	}
 	// only the user domain may be operated on (plus /Library/LaunchAgents entries usable in the gui domain)
@@ -140,13 +140,13 @@ func (app *App) handleLaunchdAction(w http.ResponseWriter, r *http.Request, s *S
 		if svc.Label == req.Label {
 			plistPath = svc.PlistPath
 			if svc.Domain != "user" && svc.Domain != "agent" {
-				apiErr(w, http.StatusForbidden, "系统级服务需要 root,面板仅支持用户级操作")
+				apiErr(w, http.StatusForbidden, "System-level services require root; the panel only manages user-level services")
 				return
 			}
 		}
 	}
 	if plistPath == "" {
-		apiErr(w, 404, "找不到该服务")
+		apiErr(w, 404, "Service not found")
 		return
 	}
 	target := "gui/" + strconv.Itoa(os.Getuid()) + "/" + req.Label
@@ -167,12 +167,12 @@ func (app *App) handleLaunchdAction(w http.ResponseWriter, r *http.Request, s *S
 	case "stop":
 		out, code = runCmd(0, "launchctl", "bootout", target)
 	default:
-		apiErr(w, 400, "未知操作")
+		apiErr(w, 400, "Unknown action")
 		return
 	}
 	app.audit("launchd_"+req.Action, req.Label)
 	if code != 0 {
-		apiErr(w, 500, "操作失败: "+strings.TrimSpace(out))
+		apiErr(w, 500, "Action failed: "+strings.TrimSpace(out))
 		return
 	}
 	apiOK(w, map[string]any{"output": strings.TrimSpace(out)})
@@ -234,7 +234,7 @@ type BrewService struct {
 func (app *App) handleBrewServices(w http.ResponseWriter, r *http.Request, s *Session) {
 	out, code := runCmd(60*time.Second, brewBin(), "services", "list")
 	if code != 0 {
-		apiErr(w, 500, "brew services 失败: "+out)
+		apiErr(w, 500, "brew services failed: "+out)
 		return
 	}
 	list := []BrewService{}
@@ -267,17 +267,17 @@ func (app *App) handleBrewServiceAction(w http.ResponseWriter, r *http.Request, 
 		Action string `json:"action"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		apiErr(w, 400, "参数错误")
+		apiErr(w, 400, "Invalid request")
 		return
 	}
 	switch req.Action {
 	case "start", "stop", "restart", "run":
 	default:
-		apiErr(w, 400, "未知操作")
+		apiErr(w, 400, "Unknown action")
 		return
 	}
 	if !safeName(req.Name) {
-		apiErr(w, 400, "名称不合法")
+		apiErr(w, 400, "Invalid name")
 		return
 	}
 	out, code := runCmd(120*time.Second, brewBin(), "services", req.Action, req.Name)

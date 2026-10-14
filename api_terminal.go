@@ -45,7 +45,7 @@ func (app *App) handleTerminal(w http.ResponseWriter, r *http.Request, s *Sessio
 	}
 	p, err := pty.Start(exec.Command(argv[0], argv[1:]...))
 	if err != nil {
-		ws.WriteMessage(websocket.TextMessage, []byte("\r\n终端启动失败: "+err.Error()+"\r\n"))
+		ws.WriteMessage(websocket.TextMessage, []byte("\r\nFailed to start terminal: "+err.Error()+"\r\n"))
 		return
 	}
 	defer p.Close()

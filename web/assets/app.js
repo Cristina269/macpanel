@@ -7,6 +7,9 @@ let AI_HIST = [];            // AI chat history (frontend memory)
 let timers = [];
 const $ = s => document.querySelector(s);
 const mainEl = () => document.getElementById('main');
+// ts(): translate server-provided strings (apiErr, monitor last_error, probe
+// detail); non-strings and values without a dictionary entry pass through.
+const ts = s => (typeof s === 'string' ? t(s) : s);
 
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g,
@@ -267,7 +270,7 @@ async function loadBrewServices() {
             : `<button class="small" data-act="brewsvc" data-arg="start" data-name="${esc(sv.name)}">${t('Start')}</button>`}
           <button class="small ghost" data-act="brewsvc" data-arg="run" data-name="${esc(sv.name)}" title="${t('Run in foreground; not registered for auto-start')}">${t('Run')}</button>
         </td></tr>`).join('') : '<tr><td colspan="5" class="muted">' + t('No brew services') + '</td></tr>') + `</table>`;
-  } catch (e) { box.innerHTML = `<div class="muted">${esc(e.message)}</div>`; }
+  } catch (e) { box.innerHTML = `<div class="muted">${esc(ts(e.message))}</div>`; }
 }
 async function loadLaunchd() {
   const box = document.getElementById('svc-launchd');
@@ -293,7 +296,7 @@ async function loadLaunchd() {
             : '<span class="muted">' + t('Read-only') + '</span>'}
         </td></tr>`;
       }).join('') + `</table>`;
-  } catch (e) { box.innerHTML = `<div class="muted">${esc(e.message)}</div>`; }
+  } catch (e) { box.innerHTML = `<div class="muted">${esc(ts(e.message))}</div>`; }
 }
 
 /* =============== Monitors =============== */
@@ -335,7 +338,7 @@ async function loadMonitors() {
         <td><span class="badge">${esc(m.type)}</span></td>
         <td><code>${esc(m.target)}</code></td>
         <td>${m.last_check && !String(m.last_check).startsWith('0001')
-          ? (m.last_ok ? '<span class="badge ok">' + t('Up') + '</span>' : `<span class="badge err" title="${esc(m.last_error)}">${t('Down')}</span>`)
+          ? (m.last_ok ? '<span class="badge ok">' + t('Up') + '</span>' : `<span class="badge err" title="${esc(ts(m.last_error))}">${t('Down')}</span>`)
           : '<span class="badge">' + t('Not checked') + '</span>'}</td>
         <td>${m.latency_ms ? m.latency_ms.toFixed(0) + ' ms' : '-'}</td>
         <td class="muted">${m.last_check && !String(m.last_check).startsWith('0001') ? fmtTime(m.last_check) : '-'}</td>
@@ -348,7 +351,7 @@ async function loadMonitors() {
           <button class="small ghost" data-act="mon-toggle" data-arg="${m.id}" data-on="${m.enabled ? '1' : ''}">${m.enabled ? t('Disable') : t('Enable')}</button>
           <button class="small danger" data-act="mon-del" data-arg="${m.id}" data-name="${esc(m.name)}">${t('Delete')}</button>
         </td></tr>`).join('') : '<tr><td colspan="7" class="muted">' + t('No monitors yet; enabled items are checked automatically every 60 seconds') + '</td></tr>') + `</table>`;
-  } catch (e) { box.innerHTML = `<div class="muted">${esc(e.message)}</div>`; }
+  } catch (e) { box.innerHTML = `<div class="muted">${esc(ts(e.message))}</div>`; }
 }
 
 /* =============== Cron jobs =============== */
@@ -403,7 +406,7 @@ async function loadCron() {
             data-sched="${esc(j.schedule)}" data-cmd="${esc(j.command)}" data-name="${esc(j.name)}">${t('Edit')}</button>
           <button class="small danger" data-act="cron-del" data-arg="${j.index}">${t('Delete')}</button>
         </td></tr>`).join('') : '<tr><td colspan="5" class="muted">' + t('crontab is empty') + '</td></tr>') + `</table>`;
-  } catch (e) { box.innerHTML = `<div class="muted">${esc(e.message)}</div>`; }
+  } catch (e) { box.innerHTML = `<div class="muted">${esc(ts(e.message))}</div>`; }
 }
 
 /* =============== Ports =============== */
@@ -437,7 +440,7 @@ async function loadPorts() {
           <button class="small ghost" data-act="port-probe" data-arg="${p.port}">${t('Probe')}</button>
         </td></tr>`;
       }).join('') + `</table>`;
-  } catch (e) { box.innerHTML = `<div class="muted">${esc(e.message)}</div>`; }
+  } catch (e) { box.innerHTML = `<div class="muted">${esc(ts(e.message))}</div>`; }
 }
 
 /* =============== Sites (Caddy) =============== */
@@ -509,7 +512,7 @@ async function loadSites() {
             data-key="${esc(s.key || '')}" data-enabled="${s.enabled ? '1' : ''}">${t('Edit')}</button>
           <button class="small danger" data-act="site-del" data-arg="${esc(s.domain)}">${t('Delete')}</button>
         </td></tr>`).join('') : '<tr><td colspan="6" class="muted">' + t('No sites yet; saving a site generates the Caddyfile and hot-reloads it') + '</td></tr>') + `</table>`;
-  } catch (e) { box.innerHTML = `<div class="muted">${esc(e.message)}</div>`; }
+  } catch (e) { box.innerHTML = `<div class="muted">${esc(ts(e.message))}</div>`; }
 }
 
 /* =============== Containers =============== */
@@ -559,7 +562,7 @@ async function loadContainers() {
           <button class="small danger" data-act="ct-del" data-arg="${esc(c.id)}">${t('Delete')}</button>
         </td></tr>`;
       }).join('') : '<tr><td colspan="7" class="muted">' + t('No containers') + '</td></tr>') + `</table>`;
-  } catch (e) { box.innerHTML = `<div class="muted">${esc(e.message)}</div>`; }
+  } catch (e) { box.innerHTML = `<div class="muted">${esc(ts(e.message))}</div>`; }
 }
 async function loadImages() {
   const box = document.getElementById('ct-images');
@@ -570,7 +573,7 @@ async function loadImages() {
     box.innerHTML = imgs.length
       ? imgs.map(i => `<span class="badge">${esc(i.reference || JSON.stringify(i))}</span>`).join(' ')
       : t('No images');
-  } catch (e) { box.textContent = t('Failed to fetch image list: ') + e.message; }
+  } catch (e) { box.textContent = t('Failed to fetch image list: ') + ts(e.message); }
 }
 function watchLogs(id) {
   window._ctLogId = id;
@@ -586,7 +589,7 @@ async function refreshLogs() {
     const d = await api('/api/container/logs?id=' + encodeURIComponent(id));
     pre.textContent = (d.logs || []).join('\n') || t('(no logs)');
     pre.scrollTop = pre.scrollHeight;
-  } catch (e) { pre.textContent = e.message; }
+  } catch (e) { pre.textContent = ts(e.message); }
 }
 
 /* =============== App store =============== */
@@ -634,7 +637,7 @@ async function loadApps() {
           : `<button class="small" data-act="app-install-brew" data-arg="${esc(a.id)}" data-name="${esc(a.name)}">${t('Install')}</button>`}
       </div>`).join('') || '<div class="muted">' + t('None') + '</div>';
   } catch (e) {
-    brewBox.innerHTML = ctrBox.innerHTML = `<div class="muted">${esc(e.message)}</div>`;
+    brewBox.innerHTML = ctrBox.innerHTML = `<div class="muted">${esc(ts(e.message))}</div>`;
   }
 }
 async function loadBrewInstalled() {
@@ -652,7 +655,7 @@ async function loadBrewInstalled() {
           <button class="small ghost" data-act="brew-upgrade" data-arg="${esc(p.name)}">${t('Upgrade')}</button>
           <button class="small danger" data-act="brew-uninstall" data-arg="${esc(p.name)}">${t('Uninstall')}</button>
         </td></tr>`).join('') + `</table>`;
-  } catch (e) { box.innerHTML = esc(e.message); }
+  } catch (e) { box.innerHTML = esc(ts(e.message)); }
 }
 async function brewSearch(q) {
   const box = document.getElementById('brew-results');
@@ -667,12 +670,12 @@ async function brewSearch(q) {
             <button class="small" data-act="brew-install" data-arg="${esc(n)}">${t('Install')}</button>
           </td></tr>`).join('') + `</table>`
       : '<div class="muted">' + t('No results') + '</div>';
-  } catch (e) { box.innerHTML = `<div class="muted">${esc(e.message)}</div>`; }
+  } catch (e) { box.innerHTML = `<div class="muted">${esc(ts(e.message))}</div>`; }
 }
 function brewInfo(name) {
   api('/api/brew/info?name=' + encodeURIComponent(name))
     .then(d => openModal('brew info: ' + name, '<pre class="log">' + esc(d.info) + '</pre>'))
-    .catch(e => toast(e.message, 'err'));
+    .catch(e => toast(ts(e.message), 'err'));
 }
 
 /* =============== Terminal =============== */
@@ -822,7 +825,7 @@ async function aiSend(text) {
     }
     if (!acc) el.textContent = t('(empty reply)');
     else AI_HIST.push({ role: 'assistant', content: acc });
-  } catch (e) { el.textContent = t('Error: ') + e.message; }
+  } catch (e) { el.textContent = t('Error: ') + ts(e.message); }
 }
 
 /* =============== Settings =============== */
@@ -872,7 +875,7 @@ function pageSettings() {
       t(' — after changing the entrance, use the new address; other paths 302-redirect to it');
     const ed = document.getElementById('known-editor');
     ed.value = (d.known_services || []).map(k => [k.port, k.name, k.url].join(' ')).join('\n');
-  }).catch(e => toast(e.message, 'err'));
+  }).catch(e => toast(ts(e.message), 'err'));
 }
 function viewAudit() {
   api('/api/audit').then(d => {
@@ -881,7 +884,7 @@ function viewAudit() {
       catch (e) { return l; }
     });
     openModal(t('Audit log (last ') + rows.length + t(' entries)'), '<pre class="log" style="max-height:60vh">' + esc(rows.join('\n')) + '</pre>');
-  }).catch(e => toast(e.message, 'err'));
+  }).catch(e => toast(ts(e.message), 'err'));
 }
 
 /* =============== Event delegation =============== */
@@ -911,7 +914,7 @@ function wireEvents() {
         case 'mon-check': {
           const d = await api('/api/monitors/check', 'POST', { id: arg });
           toast(d.monitor.last_ok ? nameOrId(d.monitor) + t(' OK (') + d.monitor.latency_ms.toFixed(0) + 'ms)'
-            : nameOrId(d.monitor) + t(' FAIL: ') + d.monitor.last_error, d.monitor.last_ok ? 'ok' : 'err');
+            : nameOrId(d.monitor) + t(' FAIL: ') + ts(d.monitor.last_error), d.monitor.last_ok ? 'ok' : 'err');
           loadMonitors(); break;
         }
         case 'mon-toggle': await api('/api/monitors/toggle', 'POST', { id: arg, enabled: !el.dataset.on }); loadMonitors(); break;
@@ -943,7 +946,7 @@ function wireEvents() {
           toast(t('Probing ') + arg + ' …');
           const d = await api('/api/system/probe?port=' + arg);
           toast(d.http_ok ? t('Port ') + arg + ' HTTP ' + d.status + ' (' + d.ms.toFixed(0) + 'ms)'
-            : t('Port ') + arg + t(' probe failed: ') + d.detail, d.http_ok ? 'ok' : 'err');
+            : t('Port ') + arg + t(' probe failed: ') + ts(d.detail), d.http_ok ? 'ok' : 'err');
           break;
         }
         /* sites */
@@ -1019,7 +1022,7 @@ function wireEvents() {
         case 'known-save': await saveKnown(); break;
         case 'audit-view': viewAudit(); break;
       }
-    } catch (err) { toast(err.message, 'err'); }
+    } catch (err) { toast(ts(err.message), 'err'); }
   });
 
   document.addEventListener('submit', async e => {
@@ -1132,9 +1135,9 @@ function wireEvents() {
         }
       }
     } catch (err) {
-      if (kind === 'login') document.getElementById('login-err').textContent = err.message;
-      else if (kind === 'setup') document.getElementById('setup-err').textContent = err.message;
-      else toast(err.message, 'err');
+      if (kind === 'login') document.getElementById('login-err').textContent = ts(err.message);
+      else if (kind === 'setup') document.getElementById('setup-err').textContent = ts(err.message);
+      else toast(ts(err.message), 'err');
     }
   });
 }

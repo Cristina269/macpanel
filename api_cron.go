@@ -21,7 +21,7 @@ type CronJob struct {
 func loadCrontab() (lines []string, err error) {
 	out, code := runCmd(10*time.Second, "crontab", "-l")
 	if code != 0 && !strings.Contains(out, "no crontab") {
-		return nil, fmt.Errorf("crontab -l 失败: %s", strings.TrimSpace(out))
+		return nil, fmt.Errorf("crontab -l failed: %s", strings.TrimSpace(out))
 	}
 	for _, l := range strings.Split(out, "\n") {
 		lines = append(lines, strings.TrimRight(l, "\r"))
@@ -137,7 +137,7 @@ func (app *App) handleCronToggle(w http.ResponseWriter, r *http.Request, s *Sess
 		Index int `json:"index"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		apiErr(w, 400, "参数错误")
+		apiErr(w, 400, "Invalid request")
 		return
 	}
 	lines, err := loadCrontab()
@@ -146,7 +146,7 @@ func (app *App) handleCronToggle(w http.ResponseWriter, r *http.Request, s *Sess
 		return
 	}
 	if req.Index < 0 || req.Index >= len(lines) {
-		apiErr(w, 404, "行号越界")
+		apiErr(w, 404, "Line index out of range")
 		return
 	}
 	line := strings.TrimSpace(lines[req.Index])
@@ -155,12 +155,12 @@ func (app *App) handleCronToggle(w http.ResponseWriter, r *http.Request, s *Sess
 	} else if line != "" {
 		lines[req.Index] = "# " + line
 	} else {
-		apiErr(w, 400, "空行无法切换")
+		apiErr(w, 400, "Cannot toggle an empty line")
 		return
 	}
 	backupCrontab(lines)
 	if err := writeCrontab(lines); err != nil {
-		apiErr(w, 500, "写回失败: "+err.Error())
+		apiErr(w, 500, "Failed to write crontab: "+err.Error())
 		return
 	}
 	app.audit("cron_toggle", fmt.Sprintf("line %d", req.Index))
@@ -176,11 +176,11 @@ func (app *App) handleCronSave(w http.ResponseWriter, r *http.Request, s *Sessio
 		Name     string `json:"name"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		apiErr(w, 400, "参数错误")
+		apiErr(w, 400, "Invalid request")
 		return
 	}
 	if strings.ContainsAny(req.Schedule+req.Command, "\n\r") {
-		apiErr(w, 400, "不能包含换行")
+		apiErr(w, 400, "Newlines are not allowed")
 		return
 	}
 	line := req.Schedule + " " + req.Command
@@ -196,14 +196,14 @@ func (app *App) handleCronSave(w http.ResponseWriter, r *http.Request, s *Sessio
 		lines = append(lines, line)
 	} else {
 		if req.Index >= len(lines) {
-			apiErr(w, 404, "行号越界")
+			apiErr(w, 404, "Line index out of range")
 			return
 		}
 		lines[req.Index] = line
 	}
 	backupCrontab(lines)
 	if err := writeCrontab(lines); err != nil {
-		apiErr(w, 500, "写回失败: "+err.Error())
+		apiErr(w, 500, "Failed to write crontab: "+err.Error())
 		return
 	}
 	app.audit("cron_save", line)
@@ -216,7 +216,7 @@ func (app *App) handleCronDelete(w http.ResponseWriter, r *http.Request, s *Sess
 		Index int `json:"index"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		apiErr(w, 400, "参数错误")
+		apiErr(w, 400, "Invalid request")
 		return
 	}
 	lines, err := loadCrontab()
@@ -225,13 +225,13 @@ func (app *App) handleCronDelete(w http.ResponseWriter, r *http.Request, s *Sess
 		return
 	}
 	if req.Index < 0 || req.Index >= len(lines) {
-		apiErr(w, 404, "行号越界")
+		apiErr(w, 404, "Line index out of range")
 		return
 	}
 	lines = append(lines[:req.Index], lines[req.Index+1:]...)
 	backupCrontab(lines)
 	if err := writeCrontab(lines); err != nil {
-		apiErr(w, 500, "写回失败: "+err.Error())
+		apiErr(w, 500, "Failed to write crontab: "+err.Error())
 		return
 	}
 	app.audit("cron_delete", fmt.Sprintf("line %d", req.Index))

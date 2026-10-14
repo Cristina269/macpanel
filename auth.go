@@ -247,7 +247,7 @@ func (app *App) handleSetupStatus(w http.ResponseWriter, r *http.Request) {
 
 func (app *App) handleSetup(w http.ResponseWriter, r *http.Request) {
 	if !app.needsSetup() {
-		apiErr(w, http.StatusForbidden, "已初始化,请直接登录")
+		apiErr(w, http.StatusForbidden, "Already initialized. Please sign in")
 		return
 	}
 	var req struct {
@@ -255,15 +255,15 @@ func (app *App) handleSetup(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		apiErr(w, 400, "参数错误")
+		apiErr(w, 400, "Invalid request")
 		return
 	}
 	if !usernameRe.MatchString(req.Username) {
-		apiErr(w, 400, "用户名 2-32 位,仅字母数字_.-")
+		apiErr(w, 400, "Username must be 2-32 characters; only letters, digits and _ . - allowed")
 		return
 	}
 	if len(req.Password) < 10 {
-		apiErr(w, 400, "密码至少 10 位")
+		apiErr(w, 400, "Password must be at least 10 characters")
 		return
 	}
 	entrance := "p_" + randomToken(6)
@@ -272,18 +272,18 @@ func (app *App) handleSetup(w http.ResponseWriter, r *http.Request) {
 		c.Entrance = entrance
 	})
 	if err != nil {
-		apiErr(w, 500, "保存失败: "+err.Error())
+		apiErr(w, 500, "Failed to save: "+err.Error())
 		return
 	}
-	app.audit("setup", "创建管理员 "+req.Username)
+	app.audit("setup", "Created admin "+req.Username)
 	apiOK(w, map[string]any{"entrance": entrance})
 }
 
 func (app *App) handleLogin(w http.ResponseWriter, r *http.Request) {
 	ip := clientIP(r)
 	if !app.limiter.Allow(ip) {
-		app.audit("login_deny", ip+" 触发限速")
-		apiErr(w, http.StatusTooManyRequests, "尝试次数过多,请稍后再试")
+		app.audit("login_deny", ip+" rate limit exceeded")
+		apiErr(w, http.StatusTooManyRequests, "Too many attempts. Please try again later")
 		return
 	}
 	var req struct {
@@ -291,7 +291,7 @@ func (app *App) handleLogin(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		apiErr(w, 400, "参数错误")
+		apiErr(w, 400, "Invalid request")
 		return
 	}
 	okUser, okPass := false, false
@@ -308,12 +308,12 @@ func (app *App) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	if !okUser || !okPass {
 		if d := app.limiter.Fail(ip); d > 0 {
-			app.audit("login_fail", ip+" "+req.Username+" 已锁定")
-			apiErr(w, http.StatusTooManyRequests, "失败次数过多,锁定至 "+time.Now().Add(d).Format("15:04:05"))
+			app.audit("login_fail", ip+" "+req.Username+" locked")
+			apiErr(w, http.StatusTooManyRequests, "Too many failures, locked until "+time.Now().Add(d).Format("15:04:05"))
 			return
 		}
 		app.audit("login_fail", ip+" "+req.Username)
-		apiErr(w, 401, "用户名或密码错误")
+		apiErr(w, 401, "Incorrect username or password")
 		return
 	}
 	app.limiter.Reset(ip)
@@ -351,18 +351,18 @@ func (app *App) authWrap(h AuthedHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// IP allowlist
 		if len(app.store.Cfg.IPAllowlist) > 0 && !ipAllowed(clientIP(r), app.store.Cfg.IPAllowlist) {
-			apiErr(w, http.StatusForbidden, "IP 不在白名单")
+			apiErr(w, http.StatusForbidden, "IP not in allowlist")
 			return
 		}
 		s := app.sessions.sessionFromRequest(r)
 		if s == nil {
-			apiErr(w, 401, "未登录")
+			apiErr(w, 401, "Not signed in")
 			return
 		}
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			csrf := r.Header.Get("X-Panel-CSRF")
 			if csrf == "" || !sameStr(csrf, s.CSRF) {
-				apiErr(w, http.StatusForbidden, "CSRF 校验失败")
+				apiErr(w, http.StatusForbidden, "CSRF check failed")
 				return
 			}
 		}

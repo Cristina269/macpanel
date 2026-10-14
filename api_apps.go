@@ -97,7 +97,7 @@ func (app *App) handleAppInstallBrew(w http.ResponseWriter, r *http.Request, s *
 		ID string `json:"id"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		apiErr(w, 400, "参数错误")
+		apiErr(w, 400, "Invalid request")
 		return
 	}
 	for _, a := range loadCatalog().Brew {
@@ -108,7 +108,7 @@ func (app *App) handleAppInstallBrew(w http.ResponseWriter, r *http.Request, s *
 			return
 		}
 	}
-	apiErr(w, 404, "应用不存在")
+	apiErr(w, 404, "App not found")
 }
 
 // POST /api/apps/install-container {id}
@@ -117,7 +117,7 @@ func (app *App) handleAppInstallContainer(w http.ResponseWriter, r *http.Request
 		ID string `json:"id"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		apiErr(w, 400, "参数错误")
+		apiErr(w, 400, "Invalid request")
 		return
 	}
 	for _, a := range loadCatalog().Container {
@@ -133,5 +133,5 @@ func (app *App) handleAppInstallContainer(w http.ResponseWriter, r *http.Request
 			return
 		}
 	}
-	apiErr(w, 404, "应用不存在")
+	apiErr(w, 404, "App not found")
 }

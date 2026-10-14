@@ -210,7 +210,7 @@ func (app *App) handleSettingsSave(w http.ResponseWriter, r *http.Request, s *Se
 		SessionHours  *int            `json:"session_hours"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		apiErr(w, 400, "参数错误")
+		apiErr(w, 400, "Invalid request")
 		return
 	}
 	err := app.store.Update(func(c *Config) {
@@ -244,7 +244,7 @@ func (app *App) handleSettingsSave(w http.ResponseWriter, r *http.Request, s *Se
 		return
 	}
 	app.audit("settings_save", "")
-	apiOK(w, map[string]any{"note": "listen/TLS 修改需重启面板生效"})
+	apiOK(w, map[string]any{"note": "listen/TLS changes take effect after the panel is restarted"})
 }
 
 // handlePasswordChange changes the caller's own password
@@ -254,11 +254,11 @@ func (app *App) handlePasswordChange(w http.ResponseWriter, r *http.Request, s *
 		New string `json:"new"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		apiErr(w, 400, "参数错误")
+		apiErr(w, 400, "Invalid request")
 		return
 	}
 	if len(req.New) < 10 {
-		apiErr(w, 400, "新密码至少 10 位")
+		apiErr(w, 400, "New password must be at least 10 characters")
 		return
 	}
 	ok := false
@@ -270,7 +270,7 @@ func (app *App) handlePasswordChange(w http.ResponseWriter, r *http.Request, s *
 		}
 	})
 	if !ok {
-		apiErr(w, 401, "旧密码错误")
+		apiErr(w, 401, "Incorrect old password")
 		return
 	}
 	err := app.store.Update(func(c *Config) {

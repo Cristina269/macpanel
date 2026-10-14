@@ -126,7 +126,7 @@ func (app *App) handleJobGet(w http.ResponseWriter, r *http.Request, s *Session)
 	j := app.jobs.jobs[id]
 	app.jobs.mu.Unlock()
 	if j == nil {
-		apiErr(w, 404, "任务不存在")
+		apiErr(w, 404, "Job not found")
 		return
 	}
 	since := 0
