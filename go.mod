@@ -1,4 +1,4 @@
-module macpanel
+module github.com/zouyonghao/macpanel
 
 go 1.27.2
 
