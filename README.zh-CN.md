@@ -32,10 +32,11 @@
 ### launchd 常驻
 
 ```bash
-cp com.macpanel.plist ~/Library/LaunchAgents/
-# 编辑 plist,把其中的 /Users/zyh/macpanel 改成你的实际路径
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.macpanel.plist
+./install.sh                        # 构建并把 plist 渲染为当前 checkout 路径,
+                                    # 安装 launchd agent 并启动面板
 ```
+
+agent(`com.macpanel`)登录自启、进程保活;日志在 `<checkout>/data/panel.log`。卸载:`launchctl bootout gui/$(id -u)/com.macpanel && rm ~/Library/LaunchAgents/com.macpanel.plist`。
 
 ## 安全设计(按公网直连标准)
 

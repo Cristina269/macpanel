@@ -32,10 +32,11 @@ The first visit to `http://<host>:9000/` starts the setup wizard: once you creat
 ### Run persistently under launchd
 
 ```bash
-cp com.macpanel.plist ~/Library/LaunchAgents/
-# Edit the plist and change /Users/zyh/macpanel to your actual path
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.macpanel.plist
+./install.sh                        # builds, renders the plist to your checkout path,
+                                    # installs the launchd agent and starts the panel
 ```
+
+The agent (`com.macpanel`) auto-starts at login and is kept alive; logs go to `<checkout>/data/panel.log`. To uninstall: `launchctl bootout gui/$(id -u)/com.macpanel && rm ~/Library/LaunchAgents/com.macpanel.plist`.
 
 ## Security design (built to be exposed directly to the public internet)
 

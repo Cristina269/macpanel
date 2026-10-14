@@ -1,14 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
+<!--
+  Template: install.sh renders __REPO_DIR__ to your checkout path and copies
+  the result to ~/Library/LaunchAgents/. Load this file directly and launchd
+  will fail on the placeholder paths.
+-->
 <dict>
 	<key>Label</key>
 	<string>com.macpanel</string>
 	<key>ProgramArguments</key>
 	<array>
-		<string>/Users/zyh/macpanel/macpanel</string>
+		<string>__REPO_DIR__/macpanel</string>
 		<string>-data</string>
-		<string>/Users/zyh/macpanel/data</string>
+		<string>__REPO_DIR__/data</string>
 	</array>
 	<key>RunAtLoad</key>
 	<true/>
@@ -17,9 +22,9 @@
 	<key>ProcessType</key>
 	<string>Background</string>
 	<key>StandardOutPath</key>
-	<string>/Users/zyh/macpanel/data/panel.log</string>
+	<string>__REPO_DIR__/data/panel.log</string>
 	<key>StandardErrorPath</key>
-	<string>/Users/zyh/macpanel/data/panel.log</string>
+	<string>__REPO_DIR__/data/panel.log</string>
 	<key>EnvironmentVariables</key>
 	<dict>
 		<key>PATH</key>
