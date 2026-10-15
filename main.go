@@ -33,6 +33,10 @@ func main() {
 	flag.Parse()
 	dataDir = *cfgDir
 	_ = os.MkdirAll(dataDir, 0o700)
+	// MkdirAll doesn't tighten an existing dir; it holds the setup token, sessions and password hashes
+	if err := os.Chmod(dataDir, 0o700); err != nil {
+		log.Fatal("failed to secure data directory: ", err)
+	}
 
 	store, err := LoadStore(dataDir)
 	if err != nil {

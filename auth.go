@@ -239,7 +239,9 @@ func (rl *RateLimiter) Reset(ip string) {
 var usernameRe = regexp.MustCompile(`^[a-zA-Z0-9_.-]{2,32}$`)
 
 func (app *App) needsSetup() bool {
-	return len(app.store.Cfg.Users) == 0
+	n := 0
+	app.store.Read(func(c *Config) { n = len(c.Users) })
+	return n == 0
 }
 
 func (app *App) handleSetupStatus(w http.ResponseWriter, r *http.Request) {
@@ -251,8 +253,11 @@ func (app *App) handleSetupStatus(w http.ResponseWriter, r *http.Request) {
 func newSetupToken(dir string) string {
 	tok := randomToken(16)
 	path := filepath.Join(dir, "setup-token")
-	_ = os.WriteFile(path, []byte(tok+"\n"), 0o600)
-	log.Printf("first run: setup token %s (also in %s)", tok, path)
+	_ = os.Remove(path) // WriteFile keeps an existing file's mode
+	if err := os.WriteFile(path, []byte(tok+"\n"), 0o600); err != nil {
+		log.Fatal("failed to write setup token: ", err)
+	}
+	log.Printf("first run: setup token written to %s", path) // not the token itself: logs get shared
 	return tok
 }
 

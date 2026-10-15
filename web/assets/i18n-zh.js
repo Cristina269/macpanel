@@ -7,7 +7,7 @@ window.I18N.dict = {
   'Username': '用户名',
   'Password': '密码',
   'Sign in': '登录',
-  'Setup token (in data/setup-token or the panel log)': '初始化令牌(见 data/setup-token 或面板日志)',
+  'Setup token (in data/setup-token)': '初始化令牌(见 data/setup-token)',
   'Set admin username': '设置管理员用户名',
   'Set password (at least 10 characters)': '设置密码(至少 10 位)',
   'Initialize panel': '初始化面板',
