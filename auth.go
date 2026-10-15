@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -245,6 +246,16 @@ func (app *App) handleSetupStatus(w http.ResponseWriter, r *http.Request) {
 	apiOK(w, map[string]any{"needs_setup": app.needsSetup()})
 }
 
+// newSetupToken guards first-run setup: the panel listens on all interfaces before an admin
+// exists, so whoever reached it first could claim it. The token is only readable on the host.
+func newSetupToken(dir string) string {
+	tok := randomToken(16)
+	path := filepath.Join(dir, "setup-token")
+	_ = os.WriteFile(path, []byte(tok+"\n"), 0o600)
+	log.Printf("first run: setup token %s (also in %s)", tok, path)
+	return tok
+}
+
 func (app *App) handleSetup(w http.ResponseWriter, r *http.Request) {
 	if !app.needsSetup() {
 		apiErr(w, http.StatusForbidden, "Already initialized. Please sign in")
@@ -253,9 +264,15 @@ func (app *App) handleSetup(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
+		Token    string `json:"token"`
 	}
 	if err := readJSON(r, &req); err != nil {
 		apiErr(w, 400, "Invalid request")
+		return
+	}
+	if app.setupToken == "" || !sameStr(strings.TrimSpace(req.Token), app.setupToken) {
+		app.audit("setup_deny", clientIP(r)+" bad setup token")
+		apiErr(w, http.StatusForbidden, "Invalid setup token")
 		return
 	}
 	if !usernameRe.MatchString(req.Username) {
@@ -267,14 +284,25 @@ func (app *App) handleSetup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	entrance := "p_" + randomToken(6)
+	hash := hashPassword(req.Password)
+	taken := false
 	err := app.store.Update(func(c *Config) {
-		c.Users = []User{{Name: req.Username, Hash: hashPassword(req.Password)}}
+		if len(c.Users) > 0 { // re-check under the lock: two concurrent setups must not both win
+			taken = true
+			return
+		}
+		c.Users = []User{{Name: req.Username, Hash: hash}}
 		c.Entrance = entrance
 	})
+	if taken {
+		apiErr(w, http.StatusForbidden, "Already initialized. Please sign in")
+		return
+	}
 	if err != nil {
 		apiErr(w, 500, "Failed to save: "+err.Error())
 		return
 	}
+	_ = os.Remove(filepath.Join(dataDir, "setup-token"))
 	app.audit("setup", "Created admin "+req.Username)
 	apiOK(w, map[string]any{"entrance": entrance})
 }

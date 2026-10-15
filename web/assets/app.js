@@ -1042,7 +1042,7 @@ function wireEvents() {
         }
         case 'setup': {
           const creds = { username: val('username'), password: String(fd.get('password')) };
-          const d = await api('/api/setup', 'POST', creds);
+          const d = await api('/api/setup', 'POST', { ...creds, token: val('token') });
           toast(t('Setup complete! Entrance path /%s/, please bookmark it').replace('%s', d.entrance), 'ok');
           const d2 = await api('/api/login', 'POST', creds);
           ME = { user: d2.user, csrf: d2.csrf };

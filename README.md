@@ -31,7 +31,7 @@ An in-house-built macOS server panel. A single Go binary (~13 MB, ~20–30 MB re
 ./macpanel                          # Listens on :9000 by default; data directory ~/macpanel/data
 ```
 
-The first visit to `http://<host>:9000/` starts the setup wizard: once you create the admin account (password ≥ 10 characters), an **entrance path** (e.g. `/p_xxxx/`) is generated automatically — bookmark it immediately.
+The first visit to `http://<host>:9000/` starts the setup wizard. It asks for a one-time **setup token** that only someone on the host can read (`data/setup-token`, also printed to the log), so nobody else reaching the port can claim the panel first. Once you create the admin account (password ≥ 10 characters), an **entrance path** (e.g. `/p_xxxx/`) is generated automatically — bookmark it immediately.
 
 ### Run persistently under launchd
 

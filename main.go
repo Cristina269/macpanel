@@ -23,6 +23,8 @@ type App struct {
 	limiter  *RateLimiter
 	sampler  *Sampler
 	jobs     *JobManager
+
+	setupToken string // required by /api/setup; only set while no admin exists
 }
 
 func main() {
@@ -44,6 +46,9 @@ func main() {
 		jobs:     NewJobs(),
 	}
 	app.sessions.Load()
+	if app.needsSetup() {
+		app.setupToken = newSetupToken(dataDir)
+	}
 	app.sampler.Start(5 * time.Second)
 	go app.monitorLoop(60 * time.Second)
 
