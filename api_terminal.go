@@ -12,10 +12,12 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// CheckOrigin is left nil on purpose: gorilla then rejects handshakes whose Origin host != Host.
+// The session cookie alone proves nothing — same-site pages (other ports/subdomains) send it too,
+// and the CSRF header can't be set on a WebSocket handshake.
 var wsUpgrader = websocket.Upgrader{
 	ReadBufferSize:  4096,
 	WriteBufferSize: 4096,
-	CheckOrigin:     func(r *http.Request) bool { return true }, // same-origin is guaranteed by the session cookie
 }
 
 // GET /api/terminal?cmd=<optional, e.g. "ssh root@192.168.31.1"> — WS ↔ PTY

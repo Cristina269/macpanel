@@ -23,6 +23,8 @@ type App struct {
 	limiter  *RateLimiter
 	sampler  *Sampler
 	jobs     *JobManager
+
+	setupToken string // required by /api/setup; only set while no admin exists
 }
 
 func main() {
@@ -31,6 +33,10 @@ func main() {
 	flag.Parse()
 	dataDir = *cfgDir
 	_ = os.MkdirAll(dataDir, 0o700)
+	// MkdirAll doesn't tighten an existing dir; it holds the setup token, sessions and password hashes
+	if err := os.Chmod(dataDir, 0o700); err != nil {
+		log.Fatal("failed to secure data directory: ", err)
+	}
 
 	store, err := LoadStore(dataDir)
 	if err != nil {
@@ -44,6 +50,9 @@ func main() {
 		jobs:     NewJobs(),
 	}
 	app.sessions.Load()
+	if app.needsSetup() {
+		app.setupToken = newSetupToken(dataDir)
+	}
 	app.sampler.Start(5 * time.Second)
 	go app.monitorLoop(60 * time.Second)
 
